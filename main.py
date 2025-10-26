@@ -131,11 +131,16 @@ class KushinadaAnalyzer:
         self.upstream = HubertModel.from_pretrained("imprt/kushinada-hubert-large")
         self.upstream.eval()
 
-        # チェックポイントのロード
-        checkpoint_path = "./checkpoints/models--imprt--kushinada-hubert-large-jtes-er/snapshots/2ff7d7337e9b67d695193a38a8fe01639de9fe58/s3prl/result/downstream/kushinada-hubert-large-jtes-er_fold1/dev-best.ckpt"
+        # チェックポイントのロード（Hugging Faceから自動ダウンロード）
+        from huggingface_hub import hf_hub_download
 
-        if not os.path.exists(checkpoint_path):
-            raise FileNotFoundError(f"チェックポイントが見つかりません: {checkpoint_path}")
+        checkpoint_path = hf_hub_download(
+            repo_id="imprt/kushinada-hubert-large-jtes-er",
+            filename="s3prl/result/downstream/kushinada-hubert-large-jtes-er_fold1/dev-best.ckpt",
+            token=os.getenv("HF_TOKEN")
+        )
+
+        print(f"✅ チェックポイントをダウンロード: {checkpoint_path}")
 
         downstream_ckpt = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
 
