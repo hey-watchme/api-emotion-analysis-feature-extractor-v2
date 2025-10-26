@@ -1,0 +1,23 @@
+# M1 Mac用のKushinada API依存関係 (Python 3.13対応)
+# PyTorch (最新版)
+torch>=2.6.0
+torchaudio>=2.6.0
+
+# 音声処理基本
+librosa==0.10.1
+soundfile==0.12.1
+scipy
+numpy
+
+# API関連
+flask==3.0.0
+flask-cors==4.0.0
+
+# Hugging Face
+transformers
+huggingface-hub
+
+# その他
+tqdm
+PyYAML
+omegaconf

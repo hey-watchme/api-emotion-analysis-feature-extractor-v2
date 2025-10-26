@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# 環境変数
+.env
+
+# モデルキャッシュ
+checkpoints/
+s3prl_cache/
+model_cache/
+
+# テスト結果
+*_result.json
+*_analysis.json
+
+# テスト音声
+*.wav
+
+# アーカイブ
+_archive/
+
+# macOS
+.DS_Store
+
+# Docker
+Dockerfile
+Dockerfile.*
+docker-compose.yml
