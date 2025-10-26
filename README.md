@@ -343,5 +343,135 @@ feature-extractor-v2/
 
 ---
 
+## 🚀 本番環境デプロイ
+
+### デプロイ状況（2025-10-26）
+
+✅ **本番環境に移行完了**
+
+| 項目 | 詳細 |
+|------|------|
+| **デプロイ先** | EC2 (3.24.16.82) - ap-southeast-2 |
+| **エンドポイント** | https://api.hey-watch.me/emotion-analysis/features/ |
+| **コンテナ名** | emotion-analysis-feature-extractor-v3 |
+| **ポート** | 8018 |
+| **ECRリポジトリ** | watchme-emotion-analysis-feature-extractor-v3 |
+| **デプロイ方式** | GitHub Actions（自動CI/CD） |
+| **リージョン** | ap-southeast-2 (Sydney) |
+
+### 移行の経緯
+
+**2025-10-26: SUPERB (v3) → Kushinada (v2) への移行**
+
+- **移行理由**: 日本語音声に特化したモデルで怒り検出精度が大幅向上（84.77%）
+- **互換性**: v3と同じエンドポイント・コンテナ名・ポートを使用（シームレスな移行）
+- **データ形式**: OpenSMILE互換の`selected_features_timeline`形式を維持
+
+### 自動デプロイ（CI/CD）
+
+**GitHub Actionsによる自動デプロイ:**
+
+```bash
+# mainブランチにpushすると自動的にデプロイ
+git add .
+git commit -m "Update feature"
+git push origin main
+```
+
+**デプロイフロー:**
+1. Dockerイメージビルド（HF_TOKEN付き、ARM64対応）
+2. ECRにプッシュ
+3. EC2に設定ファイル転送
+4. 環境変数ファイル作成（`.env`）
+5. 既存コンテナ削除
+6. 新規コンテナ起動
+7. ヘルスチェック
+
+**進捗確認:**
+- GitHub Actions: https://github.com/hey-watchme/api-emotion-analysis-feature-extractor-v2/actions
+
+### 本番環境の動作確認
+
+```bash
+# ヘルスチェック
+curl https://api.hey-watch.me/emotion-analysis/features/health
+
+# SSH接続（必要時）
+ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
+
+# ログ確認
+docker logs emotion-analysis-feature-extractor-v3 --tail 100 -f
+
+# コンテナ状態確認
+docker ps | grep emotion-analysis-feature-extractor-v3
+```
+
+### リソース要件
+
+**本番環境での使用状況:**
+- **メモリ**: 3-3.5GB（ピーク時）
+- **ストレージ**: 約5.8GB（Dockerイメージ + モデルキャッシュ）
+- **処理時間**: 60秒音声で40-60秒
+- **ワーカー数**: 1（メモリ制約により）
+
+### 環境変数（本番）
+
+本番環境では以下の環境変数が必要です（GitHub Secretsで管理）：
+
+```env
+# AWS S3設定
+AWS_ACCESS_KEY_ID=***
+AWS_SECRET_ACCESS_KEY=***
+AWS_REGION=ap-southeast-2
+S3_BUCKET_NAME=watchme-vault
+
+# Supabase設定
+SUPABASE_URL=https://qvtlwotzuzbavrzqhyvt.supabase.co
+SUPABASE_KEY=***
+
+# Hugging Face設定
+HF_TOKEN=***
+
+# API設定
+API_PORT=8018
+SEGMENT_DURATION=10
+```
+
+### トラブルシューティング
+
+#### デプロイが失敗する場合
+
+1. **GitHub Actionsのログを確認**
+   - https://github.com/hey-watchme/api-emotion-analysis-feature-extractor-v2/actions
+
+2. **EC2のコンテナログを確認**
+   ```bash
+   ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
+   docker logs emotion-analysis-feature-extractor-v3 --tail 100
+   ```
+
+3. **環境変数の確認**
+   ```bash
+   ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
+   cat /home/ubuntu/emotion-analysis-feature-extractor-v3/.env
+   ```
+
+#### コンテナが起動しない場合
+
+```bash
+# コンテナを完全削除して再起動
+ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
+cd /home/ubuntu/emotion-analysis-feature-extractor-v3
+./run-prod.sh
+```
+
+### 関連ドキュメント
+
+- **デプロイ詳細**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **技術仕様**: [/watchme/server-configs/TECHNICAL_REFERENCE.md](../../../server-configs/TECHNICAL_REFERENCE.md)
+- **CI/CD標準仕様**: [/watchme/server-configs/CICD_STANDARD_SPECIFICATION.md](../../../server-configs/CICD_STANDARD_SPECIFICATION.md)
+
+---
+
 **最終更新**: 2025-10-26
-**バージョン**: 2.1.0（セグメント分析実装完了・API化準備完了）
+**バージョン**: 2.2.0（本番環境デプロイ完了・Kushinada移行完了）
