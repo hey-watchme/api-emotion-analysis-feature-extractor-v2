@@ -16,7 +16,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 300s  # モデルダウンロード時間を考慮（90s → 300s）
+      start_period: 30s  # モデルは既にイメージに含まれているため短縮
     deploy:
       resources:
         limits:

@@ -24,9 +24,24 @@ COPY supabase_service.py .
 ARG HF_TOKEN
 RUN test -n "$HF_TOKEN" || (echo "Error: HF_TOKEN build arg is required" && exit 1)
 
-# Kushinadaモデルのプリロード（Hugging Faceから自動ダウンロード）
-# 注意: チェックポイントは実行時に自動ダウンロードされます
-RUN HF_TOKEN=${HF_TOKEN} python3 -c "from transformers import HubertModel; HubertModel.from_pretrained('imprt/kushinada-hubert-large', token='${HF_TOKEN}')" || echo "モデルプリロードスキップ（実行時にダウンロード）"
+# Kushinadaモデルとチェックポイントのプリロード（ビルド時に完全ダウンロード）
+# これにより、実行時のダウンロード時間（3-5分）を完全に排除
+RUN HF_TOKEN=${HF_TOKEN} python3 -c "\
+from transformers import HubertModel; \
+from huggingface_hub import hf_hub_download; \
+import os; \
+os.environ['HF_TOKEN'] = '${HF_TOKEN}'; \
+print('🔧 HuBERTモデルをダウンロード中...'); \
+HubertModel.from_pretrained('imprt/kushinada-hubert-large', token='${HF_TOKEN}'); \
+print('✅ HuBERTモデルダウンロード完了'); \
+print('🔧 Kushinadaチェックポイントをダウンロード中...'); \
+checkpoint_path = hf_hub_download( \
+    repo_id='imprt/kushinada-hubert-large-jtes-er', \
+    filename='s3prl/result/downstream/kushinada-hubert-large-jtes-er_fold1/dev-best.ckpt', \
+    token='${HF_TOKEN}' \
+); \
+print(f'✅ チェックポイントダウンロード完了: {checkpoint_path}'); \
+"
 
 # ポート8018を公開
 EXPOSE 8018
@@ -37,7 +52,8 @@ ENV PYTHONUNBUFFERED=1
 ENV TRANSFORMERS_CACHE=/app/.cache
 
 # ヘルスチェック
-HEALTHCHECK --interval=30s --timeout=30s --start-period=90s --retries=3 \
+# start-period: モデルが既にイメージに含まれているため30秒で十分
+HEALTHCHECK --interval=30s --timeout=30s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8018/health || exit 1
 
 # アプリケーションの起動

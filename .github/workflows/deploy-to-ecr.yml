@@ -198,22 +198,21 @@ jobs:
           echo "📊 Checking container status..."
           docker ps | grep emotion-analysis-feature-extractor-v3 || echo "⚠️ Container not found"
 
-          # ヘルスチェック（Kushinadaモデルのダウンロード時間を考慮）
+          # ヘルスチェック（モデルは既にイメージに含まれているため高速起動）
           echo "🏥 Running health check..."
-          echo "⏳ Kushinadaモデルのダウンロード中（初回は3-5分かかります）..."
 
-          # 最大2分間（12回 × 10秒）リトライ
-          for i in {1..12}; do
+          # 最大30秒間（6回 × 5秒）リトライ
+          for i in {1..6}; do
             if curl -f http://localhost:8018/health > /dev/null 2>&1; then
-              echo "✅ Health check passed (attempt $i/12)"
+              echo "✅ Health check passed (attempt $i/6)"
               break
             fi
-            echo "  Attempt $i/12 failed, retrying in 10 seconds..."
-            sleep 10
+            echo "  Attempt $i/6 failed, retrying in 5 seconds..."
+            sleep 5
           done
 
           # 最終確認
-          curl -f http://localhost:8018/health || echo "⚠️ Health check failed after 12 attempts"
+          curl -f http://localhost:8018/health || echo "⚠️ Health check failed after 6 attempts"
         ENDSSH
 
         echo "✅ EC2 deployment completed successfully!"
