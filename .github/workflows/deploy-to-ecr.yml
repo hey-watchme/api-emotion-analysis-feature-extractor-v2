@@ -1,0 +1,221 @@
+# Kushinada Emotion Recognition API - ECR & EC2 自動デプロイワークフロー
+name: Deploy to Amazon ECR and EC2
+
+# このワークフローが実行されるタイミング
+on:
+  # mainブランチにpushされた時に実行
+  push:
+    branches: [ "main" ]
+  # 手動実行も可能にする
+  workflow_dispatch:
+
+# 環境変数（重要: v3と完全に同じ名前を使用して置き換え）
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: watchme-emotion-analysis-feature-extractor-v3
+
+# ジョブの定義
+jobs:
+  deploy:
+    name: Build and Push to ECR
+    runs-on: ubuntu-latest
+
+    steps:
+    # ステップ1: コードのチェックアウト（重要：最新コードでビルドするため）
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # ステップ2: AWS認証情報の設定
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    # ステップ3: ECRへのログイン
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # ステップ4: Docker Buildxのセットアップ（マルチプラットフォーム対応）
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # ステップ5: 古いイメージをECRから削除（オプション、推奨）
+    - name: Delete old images from ECR (optional but recommended)
+      run: |
+        # 古いlatestタグを削除（エラーは無視）
+        aws ecr batch-delete-image \
+          --region ${{ env.AWS_REGION }} \
+          --repository-name ${{ env.ECR_REPOSITORY }} \
+          --image-ids imageTag=latest || true
+
+    # ステップ6: Dockerイメージのビルド、タグ付け、プッシュ（ARM64対応）
+    - name: Build, tag, and push image to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # ARM64アーキテクチャ用にDockerイメージをビルド（キャッシュ無効化）
+        docker buildx build \
+          --platform linux/arm64 \
+          --no-cache \
+          --push \
+          -f Dockerfile \
+          -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG \
+          -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest \
+          .
+
+        echo "✅ Image pushed to ECR:"
+        echo "  - $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
+        echo "  - $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest"
+
+    # ステップ7: デプロイ成功通知
+    - name: Deploy Success Notification
+      if: success()
+      run: |
+        echo "🎉 Deployment to ECR succeeded!"
+        echo "📦 Repository: ${{ env.ECR_REPOSITORY }}"
+        echo "🏷️ Image Tag: ${{ github.sha }}"
+        echo "📍 Region: ${{ env.AWS_REGION }}"
+        echo ""
+        echo "📋 Next Steps:"
+        echo "1. SSH to EC2: ssh -i ~/watchme-key.pem ubuntu@3.24.16.82"
+        echo "2. Deploy: cd /home/ubuntu/emotion-analysis-feature-extractor-v3 && ./run-prod.sh"
+
+    # ステップ8: エラー時の通知
+    - name: Deploy Failure Notification
+      if: failure()
+      run: |
+        echo "❌ Deployment to ECR failed!"
+        echo "Please check the logs above for details."
+
+  # ジョブ2: CD - EC2への自動デプロイ
+  deploy-to-ec2:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    # 重要: deploy ジョブが成功した後にのみ実行
+    needs: deploy
+
+    steps:
+    # ステップ1: SSHエージェントのセットアップ
+    - name: Setup SSH Agent
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+
+    # ステップ2: リポジトリのチェックアウト（重要: 設定ファイルのコピーのため）
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # ステップ3: Known Hostsの追加（セキュリティ向上）
+    - name: Add EC2 to known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+    # ステップ4: EC2にディレクトリを作成（べき等性のため）
+    - name: Create application directory on EC2 if not exists
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+      run: |
+        echo "📁 Creating application directory on EC2..."
+        ssh ${EC2_USER}@${EC2_HOST} "mkdir -p /home/ubuntu/emotion-analysis-feature-extractor-v3"
+        echo "✅ Directory created/verified"
+
+    # ステップ5: docker-compose.prod.ymlとrun-prod.shをEC2にコピー（重要！）
+    - name: Update configuration files on EC2
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+      run: |
+        echo "📦 Updating configuration files on EC2..."
+        scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${EC2_USER}@${EC2_HOST}:/home/ubuntu/emotion-analysis-feature-extractor-v3/
+        scp -o StrictHostKeyChecking=no run-prod.sh ${EC2_USER}@${EC2_HOST}:/home/ubuntu/emotion-analysis-feature-extractor-v3/
+        ssh ${EC2_USER}@${EC2_HOST} "chmod +x /home/ubuntu/emotion-analysis-feature-extractor-v3/run-prod.sh"
+        echo "✅ Configuration files updated"
+
+    # ステップ6: 環境変数ファイルの作成/更新（Kushinadaに必要な環境変数を追加）
+    - name: Create/Update .env file on EC2
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        echo "📝 Creating/Updating .env file on EC2..."
+
+        # SSH接続して.envファイルを作成
+        # 重要: echoコマンドで確実に環境変数を渡す（推奨方法）
+        ssh ${EC2_USER}@${EC2_HOST} << ENDSSH
+          cd /home/ubuntu/emotion-analysis-feature-extractor-v3
+          echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" > .env
+          echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" >> .env
+          echo "AWS_REGION=ap-southeast-2" >> .env
+          echo "S3_BUCKET_NAME=watchme-vault" >> .env
+          echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
+          echo "SUPABASE_KEY=${SUPABASE_KEY}" >> .env
+          echo "HF_TOKEN=${HF_TOKEN}" >> .env
+        ENDSSH
+
+        # 作成確認
+        ssh ${EC2_USER}@${EC2_HOST} "echo '✅ .env file created/updated successfully' && wc -l /home/ubuntu/emotion-analysis-feature-extractor-v3/.env"
+
+    # ステップ7: EC2にデプロイ
+    - name: Deploy to EC2 instance
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+      run: |
+        echo "🚀 Starting deployment to EC2..."
+
+        # SSHでEC2に接続してデプロイコマンドを実行
+        ssh ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
+          set -e
+          echo "📦 Navigating to application directory..."
+          cd /home/ubuntu/emotion-analysis-feature-extractor-v3
+
+          echo "🗑️ Cleaning up old Docker images..."
+          # 古いコンテナを停止
+          docker-compose -f docker-compose.prod.yml down || true
+
+          # すべての未使用イメージを完全削除（標準仕様書推奨）
+          docker system prune -a -f
+
+          echo "🔄 Running deployment script..."
+          ./run-prod.sh
+
+          echo "✅ Deployment script completed"
+
+          # コンテナの状態確認
+          echo "📊 Checking container status..."
+          docker ps | grep emotion-analysis-feature-extractor-v3 || echo "⚠️ Container not found"
+
+          # ヘルスチェック
+          echo "🏥 Running health check..."
+          sleep 5
+          curl -f http://localhost:8018/health || echo "⚠️ Health check failed"
+        ENDSSH
+
+        echo "✅ EC2 deployment completed successfully!"
+
+    # ステップ8: デプロイ成功通知
+    - name: Deployment Success Notification
+      if: success()
+      run: |
+        echo "🎉 Full CI/CD pipeline completed successfully!"
+        echo "📦 Service: emotion-analysis-feature-extractor-v3 (Kushinada)"
+        echo "🌐 URL: https://api.hey-watch.me/emotion-analysis/features/"
+        echo "🏷️ Version: ${{ github.sha }}"
+
+    # ステップ9: デプロイ失敗通知
+    - name: Deployment Failure Notification
+      if: failure()
+      run: |
+        echo "❌ EC2 deployment failed!"
+        echo "Please check the SSH connection and server logs."

@@ -1,23 +1,27 @@
-# M1 Mac用のKushinada API依存関係 (Python 3.13対応)
-# PyTorch (最新版)
-torch>=2.6.0
-torchaudio>=2.6.0
+# Kushinada感情認識API用依存関係
+# PyTorch
+torch>=2.0.0
+torchaudio>=2.0.0
 
-# 音声処理基本
-librosa==0.10.1
-soundfile==0.12.1
-scipy
-numpy
+# 音声処理
+librosa>=0.10.0
+soundfile>=0.12.0
+numpy>=1.24.0
 
-# API関連
-flask==3.0.0
-flask-cors==4.0.0
+# FastAPI
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pydantic>=2.5.0
 
 # Hugging Face
-transformers
+transformers>=4.36.0
 huggingface-hub
 
-# その他
-tqdm
-PyYAML
-omegaconf
+# Database & Cloud Storage
+supabase>=2.0.0
+boto3>=1.28.0
+aiohttp>=3.8.0
+
+# Utilities
+python-dotenv>=1.0.0

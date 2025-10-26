@@ -1,0 +1,16 @@
+{
+  "model": "kushinada-hubert-large-jtes-er (final weighted sum)",
+  "timestamp": "2025-10-26T11:12:54.359419",
+  "audio_file": "/Users/kaya.matsumoto/Desktop/ja_joy_happy-birthday_001.wav",
+  "duration_seconds": 63.3966875,
+  "dominant_emotion": "joy",
+  "confidence": 0.5893041491508484,
+  "all_emotions": {
+    "neutral": 0.0009849054040387273,
+    "joy": 0.5893041491508484,
+    "anger": 6.032410601619631e-05,
+    "sadness": 0.4096505641937256
+  },
+  "logits_range": 9.186965942382812,
+  "logits_std": 3.932522773742676
+}

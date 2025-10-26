@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  emotion-analysis-feature-extractor-v3:
+    image: 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-emotion-analysis-feature-extractor-v3:latest
+    container_name: emotion-analysis-feature-extractor-v3
+    ports:
+      - "127.0.0.1:8018:8018"
+    env_file:
+      - .env
+    networks:
+      - watchme-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8018/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+          cpus: '1.0'
+
+networks:
+  watchme-network:
+    external: true

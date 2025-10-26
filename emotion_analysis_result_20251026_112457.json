@@ -1,0 +1,16 @@
+{
+  "model": "kushinada-hubert-large-jtes-er (final weighted sum)",
+  "timestamp": "2025-10-26T11:24:57.209146",
+  "audio_file": "/Users/kaya.matsumoto/Desktop/audio.wav",
+  "duration_seconds": 60.0,
+  "dominant_emotion": "sadness",
+  "confidence": 0.7735898494720459,
+  "all_emotions": {
+    "neutral": 0.17575545608997345,
+    "joy": 0.050496987998485565,
+    "anger": 0.00015772850019857287,
+    "sadness": 0.7735898494720459
+  },
+  "logits_range": 8.49792194366455,
+  "logits_std": 3.2202224731445312
+}

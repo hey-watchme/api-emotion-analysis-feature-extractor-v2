@@ -1,65 +1,51 @@
-# Python仮想環境
-venv/
-env/
-.venv/
-
-# モデルキャッシュ（大きいファイル）
-model_cache/
-*.pt
-*.pth
-*.bin
-*.safetensors
-
-# Python関連
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# テスト関連
-.pytest_cache/
-.coverage
-htmlcov/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS関連
-.DS_Store
-Thumbs.db
+venv/
+env/
+ENV/
 
 # Git
-.git/
+.git
 .gitignore
 
-# ドキュメント
-*.md
-!README.md
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
 
-# ログファイル
+# Test files
+*.wav
+test_*.py
+test_*.wav
+result.json
+timeline_output.json
+segment_analysis_result_*.json
+check_result.py
+debug_*.py
+
+# Model cache (will be downloaded in container)
+.cache/
+huggingface/
+
+# Logs
 *.log
 
-# 一時ファイル
-*.tmp
-temp/
-tmp/
+# Environment variables (will be mounted from host)
+.env
+.env.local
+
+# Documentation
+*.md
+
+# Backup files
+*_backup.*
+*_original.py
+
+# IMPORTANT: DO NOT ignore checkpoints/ - it's needed for Kushinada
+# checkpoints/ は除外しない（Kushinadaの動作に必須）

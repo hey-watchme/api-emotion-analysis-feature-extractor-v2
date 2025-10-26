@@ -1,0 +1,750 @@
+{
+  "audio_file": "/Users/kaya.matsumoto/Downloads/録音/20250405_001.wav",
+  "segment_duration": 5,
+  "num_segments": 53,
+  "timestamp": "2025-10-26T12:03:38.182806",
+  "segments": [
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.7541708946228027,
+      "all_emotions": {
+        "neutral": 0.22856386005878448,
+        "joy": 0.016927191987633705,
+        "anger": 0.7541708946228027,
+        "sadness": 0.0003380861598998308
+      },
+      "segment_index": 0,
+      "start_time": 0.0,
+      "end_time": 5.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9951468110084534,
+      "all_emotions": {
+        "neutral": 6.046015187166631e-05,
+        "joy": 0.004791941028088331,
+        "anger": 0.9951468110084534,
+        "sadness": 7.425846320074925e-07
+      },
+      "segment_index": 1,
+      "start_time": 5.0,
+      "end_time": 10.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.9273157715797424,
+      "all_emotions": {
+        "neutral": 0.9273157715797424,
+        "joy": 0.059144727885723114,
+        "anger": 0.009443860501050949,
+        "sadness": 0.004095644690096378
+      },
+      "segment_index": 2,
+      "start_time": 10.0,
+      "end_time": 15.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.7539365291595459,
+      "all_emotions": {
+        "neutral": 0.23940791189670563,
+        "joy": 0.7539365291595459,
+        "anger": 0.00015520220040343702,
+        "sadness": 0.006500306073576212
+      },
+      "segment_index": 3,
+      "start_time": 15.0,
+      "end_time": 20.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.7372686862945557,
+      "all_emotions": {
+        "neutral": 0.7372686862945557,
+        "joy": 0.23826740682125092,
+        "anger": 0.0011271557305008173,
+        "sadness": 0.023336665704846382
+      },
+      "segment_index": 4,
+      "start_time": 20.0,
+      "end_time": 25.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.5213606357574463,
+      "all_emotions": {
+        "neutral": 0.5213606357574463,
+        "joy": 0.4693138599395752,
+        "anger": 0.00033186422660946846,
+        "sadness": 0.008993662893772125
+      },
+      "segment_index": 5,
+      "start_time": 25.0,
+      "end_time": 30.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.8543228507041931,
+      "all_emotions": {
+        "neutral": 0.11906256526708603,
+        "joy": 0.8543228507041931,
+        "anger": 0.0014754871372133493,
+        "sadness": 0.025139056146144867
+      },
+      "segment_index": 6,
+      "start_time": 30.0,
+      "end_time": 35.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.8825470805168152,
+      "all_emotions": {
+        "neutral": 0.8825470805168152,
+        "joy": 0.11051762104034424,
+        "anger": 0.003122771857306361,
+        "sadness": 0.003812528448179364
+      },
+      "segment_index": 7,
+      "start_time": 35.0,
+      "end_time": 40.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.8931726813316345,
+      "all_emotions": {
+        "neutral": 0.003743149572983384,
+        "joy": 0.08899807184934616,
+        "anger": 0.8931726813316345,
+        "sadness": 0.014086139388382435
+      },
+      "segment_index": 8,
+      "start_time": 40.0,
+      "end_time": 45.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9581103920936584,
+      "all_emotions": {
+        "neutral": 0.0004407733795233071,
+        "joy": 0.04121981933712959,
+        "anger": 0.9581103920936584,
+        "sadness": 0.00022899570467416197
+      },
+      "segment_index": 9,
+      "start_time": 45.0,
+      "end_time": 50.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.7070622444152832,
+      "all_emotions": {
+        "neutral": 0.26733559370040894,
+        "joy": 0.7070622444152832,
+        "anger": 0.002365558175370097,
+        "sadness": 0.02323659136891365
+      },
+      "segment_index": 10,
+      "start_time": 50.0,
+      "end_time": 55.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.8922801613807678,
+      "all_emotions": {
+        "neutral": 0.10320547223091125,
+        "joy": 0.8922801613807678,
+        "anger": 0.0013863499043509364,
+        "sadness": 0.003127932082861662
+      },
+      "segment_index": 11,
+      "start_time": 55.0,
+      "end_time": 60.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.7861863374710083,
+      "all_emotions": {
+        "neutral": 0.007119765970855951,
+        "joy": 0.20318184792995453,
+        "anger": 0.7861863374710083,
+        "sadness": 0.0035120376851409674
+      },
+      "segment_index": 12,
+      "start_time": 60.0,
+      "end_time": 65.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.7912619709968567,
+      "all_emotions": {
+        "neutral": 0.0031931677367538214,
+        "joy": 0.20520171523094177,
+        "anger": 0.7912619709968567,
+        "sadness": 0.0003431474615354091
+      },
+      "segment_index": 13,
+      "start_time": 65.0,
+      "end_time": 70.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9999678134918213,
+      "all_emotions": {
+        "neutral": 2.958978395639633e-09,
+        "joy": 3.209718124708161e-05,
+        "anger": 0.9999678134918213,
+        "sadness": 3.9969837217768145e-08
+      },
+      "segment_index": 14,
+      "start_time": 70.0,
+      "end_time": 75.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9741038084030151,
+      "all_emotions": {
+        "neutral": 4.333982360549271e-06,
+        "joy": 0.025890439748764038,
+        "anger": 0.9741038084030151,
+        "sadness": 1.4010100812811288e-06
+      },
+      "segment_index": 15,
+      "start_time": 75.0,
+      "end_time": 80.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.7474969625473022,
+      "all_emotions": {
+        "neutral": 0.05993996933102608,
+        "joy": 0.7474969625473022,
+        "anger": 0.1907501071691513,
+        "sadness": 0.0018129701493307948
+      },
+      "segment_index": 16,
+      "start_time": 80.0,
+      "end_time": 85.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.7427740693092346,
+      "all_emotions": {
+        "neutral": 0.7427740693092346,
+        "joy": 0.2508023679256439,
+        "anger": 0.0005272566922940314,
+        "sadness": 0.005896326154470444
+      },
+      "segment_index": 17,
+      "start_time": 85.0,
+      "end_time": 90.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.8109230399131775,
+      "all_emotions": {
+        "neutral": 0.8109230399131775,
+        "joy": 0.1790972650051117,
+        "anger": 0.0013841611798852682,
+        "sadness": 0.00859553087502718
+      },
+      "segment_index": 18,
+      "start_time": 90.0,
+      "end_time": 95.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.8224491477012634,
+      "all_emotions": {
+        "neutral": 0.8224491477012634,
+        "joy": 0.16846713423728943,
+        "anger": 0.0021990041714161634,
+        "sadness": 0.006884702946990728
+      },
+      "segment_index": 19,
+      "start_time": 95.0,
+      "end_time": 100.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.6522290706634521,
+      "all_emotions": {
+        "neutral": 0.6522290706634521,
+        "joy": 0.33927562832832336,
+        "anger": 0.001305433688685298,
+        "sadness": 0.007189848925918341
+      },
+      "segment_index": 20,
+      "start_time": 100.0,
+      "end_time": 105.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.7595664858818054,
+      "all_emotions": {
+        "neutral": 0.23486880958080292,
+        "joy": 0.7595664858818054,
+        "anger": 0.004013808909803629,
+        "sadness": 0.001550865825265646
+      },
+      "segment_index": 21,
+      "start_time": 105.0,
+      "end_time": 110.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.516171932220459,
+      "all_emotions": {
+        "neutral": 0.46398961544036865,
+        "joy": 0.516171932220459,
+        "anger": 0.01592373475432396,
+        "sadness": 0.003914777655154467
+      },
+      "segment_index": 22,
+      "start_time": 110.0,
+      "end_time": 115.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9860095977783203,
+      "all_emotions": {
+        "neutral": 0.0010020188055932522,
+        "joy": 0.012934081256389618,
+        "anger": 0.9860095977783203,
+        "sadness": 5.428498479886912e-05
+      },
+      "segment_index": 23,
+      "start_time": 115.0,
+      "end_time": 120.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.5340127348899841,
+      "all_emotions": {
+        "neutral": 0.45882105827331543,
+        "joy": 0.5340127348899841,
+        "anger": 0.004470553249120712,
+        "sadness": 0.0026956244837492704
+      },
+      "segment_index": 24,
+      "start_time": 120.0,
+      "end_time": 125.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.843790590763092,
+      "all_emotions": {
+        "neutral": 0.1537160724401474,
+        "joy": 0.843790590763092,
+        "anger": 0.00016191655595321208,
+        "sadness": 0.0023314361460506916
+      },
+      "segment_index": 25,
+      "start_time": 125.0,
+      "end_time": 130.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.6108196973800659,
+      "all_emotions": {
+        "neutral": 0.24227410554885864,
+        "joy": 0.14016462862491608,
+        "anger": 0.6108196973800659,
+        "sadness": 0.0067416029050946236
+      },
+      "segment_index": 26,
+      "start_time": 130.0,
+      "end_time": 135.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.6557115912437439,
+      "all_emotions": {
+        "neutral": 0.34026798605918884,
+        "joy": 0.6557115912437439,
+        "anger": 0.001601248630322516,
+        "sadness": 0.002419180702418089
+      },
+      "segment_index": 27,
+      "start_time": 135.0,
+      "end_time": 140.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9999654293060303,
+      "all_emotions": {
+        "neutral": 2.202026561093362e-09,
+        "joy": 3.450666554272175e-05,
+        "anger": 0.9999654293060303,
+        "sadness": 4.6227778938146e-08
+      },
+      "segment_index": 28,
+      "start_time": 140.0,
+      "end_time": 145.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.8685774207115173,
+      "all_emotions": {
+        "neutral": 1.1342280231474433e-05,
+        "joy": 0.13137342035770416,
+        "anger": 0.8685774207115173,
+        "sadness": 3.775276127271354e-05
+      },
+      "segment_index": 29,
+      "start_time": 145.0,
+      "end_time": 150.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.7580832839012146,
+      "all_emotions": {
+        "neutral": 0.0010972346644848585,
+        "joy": 0.24012036621570587,
+        "anger": 0.7580832839012146,
+        "sadness": 0.0006990346591919661
+      },
+      "segment_index": 30,
+      "start_time": 150.0,
+      "end_time": 155.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.6610222458839417,
+      "all_emotions": {
+        "neutral": 0.32577285170555115,
+        "joy": 0.6610222458839417,
+        "anger": 0.010843978263437748,
+        "sadness": 0.002360960701480508
+      },
+      "segment_index": 31,
+      "start_time": 155.0,
+      "end_time": 160.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9705373048782349,
+      "all_emotions": {
+        "neutral": 0.004862507339566946,
+        "joy": 0.01943119615316391,
+        "anger": 0.9705373048782349,
+        "sadness": 0.005169040523469448
+      },
+      "segment_index": 32,
+      "start_time": 160.0,
+      "end_time": 165.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.5093154907226562,
+      "all_emotions": {
+        "neutral": 0.48801150918006897,
+        "joy": 0.5093154907226562,
+        "anger": 0.0001978427026188001,
+        "sadness": 0.002475226065143943
+      },
+      "segment_index": 33,
+      "start_time": 165.0,
+      "end_time": 170.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9998408555984497,
+      "all_emotions": {
+        "neutral": 8.183195063793391e-07,
+        "joy": 0.00015681145305279642,
+        "anger": 0.9998408555984497,
+        "sadness": 1.4679393416372477e-06
+      },
+      "segment_index": 34,
+      "start_time": 170.0,
+      "end_time": 175.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9992196559906006,
+      "all_emotions": {
+        "neutral": 4.5466410369954247e-07,
+        "joy": 0.000776370579842478,
+        "anger": 0.9992196559906006,
+        "sadness": 3.4403624340484384e-06
+      },
+      "segment_index": 35,
+      "start_time": 175.0,
+      "end_time": 180.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.8949562907218933,
+      "all_emotions": {
+        "neutral": 0.0004557549546007067,
+        "joy": 0.10363161563873291,
+        "anger": 0.8949562907218933,
+        "sadness": 0.0009562992490828037
+      },
+      "segment_index": 36,
+      "start_time": 180.0,
+      "end_time": 185.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9989797472953796,
+      "all_emotions": {
+        "neutral": 5.527693247131538e-06,
+        "joy": 0.0010115952463820577,
+        "anger": 0.9989797472953796,
+        "sadness": 3.1909107747196686e-06
+      },
+      "segment_index": 37,
+      "start_time": 185.0,
+      "end_time": 190.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.7155910730361938,
+      "all_emotions": {
+        "neutral": 0.06815745681524277,
+        "joy": 0.21227750182151794,
+        "anger": 0.7155910730361938,
+        "sadness": 0.0039740391075611115
+      },
+      "segment_index": 38,
+      "start_time": 190.0,
+      "end_time": 195.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.7580701112747192,
+      "all_emotions": {
+        "neutral": 0.22867992520332336,
+        "joy": 0.7580701112747192,
+        "anger": 0.010928218252956867,
+        "sadness": 0.0023217902053147554
+      },
+      "segment_index": 39,
+      "start_time": 195.0,
+      "end_time": 200.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9976494908332825,
+      "all_emotions": {
+        "neutral": 1.6726733520044945e-05,
+        "joy": 0.002323641674593091,
+        "anger": 0.9976494908332825,
+        "sadness": 1.0141803613805678e-05
+      },
+      "segment_index": 40,
+      "start_time": 200.0,
+      "end_time": 205.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9903154969215393,
+      "all_emotions": {
+        "neutral": 0.0002997580450028181,
+        "joy": 0.009325613267719746,
+        "anger": 0.9903154969215393,
+        "sadness": 5.910522668273188e-05
+      },
+      "segment_index": 41,
+      "start_time": 205.0,
+      "end_time": 210.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9991278052330017,
+      "all_emotions": {
+        "neutral": 2.5777475457289256e-05,
+        "joy": 0.0008443339611403644,
+        "anger": 0.9991278052330017,
+        "sadness": 2.0926233901263913e-06
+      },
+      "segment_index": 42,
+      "start_time": 210.0,
+      "end_time": 215.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.500436007976532,
+      "all_emotions": {
+        "neutral": 0.500436007976532,
+        "joy": 0.4548725187778473,
+        "anger": 0.04424527287483215,
+        "sadness": 0.0004461898352019489
+      },
+      "segment_index": 43,
+      "start_time": 215.0,
+      "end_time": 220.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.9919446110725403,
+      "all_emotions": {
+        "neutral": 5.7726669183466583e-05,
+        "joy": 0.007991737686097622,
+        "anger": 0.9919446110725403,
+        "sadness": 5.905969828745583e-06
+      },
+      "segment_index": 44,
+      "start_time": 220.0,
+      "end_time": 225.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.4026324450969696,
+      "all_emotions": {
+        "neutral": 0.2016254961490631,
+        "joy": 0.3790319561958313,
+        "anger": 0.4026324450969696,
+        "sadness": 0.01671002246439457
+      },
+      "segment_index": 45,
+      "start_time": 225.0,
+      "end_time": 230.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.6521256566047668,
+      "all_emotions": {
+        "neutral": 0.34641173481941223,
+        "joy": 0.6521256566047668,
+        "anger": 0.00046747515443712473,
+        "sadness": 0.0009950330713763833
+      },
+      "segment_index": 46,
+      "start_time": 230.0,
+      "end_time": 235.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.808132529258728,
+      "all_emotions": {
+        "neutral": 0.808132529258728,
+        "joy": 0.1743733435869217,
+        "anger": 0.0008791389991529286,
+        "sadness": 0.01661491021513939
+      },
+      "segment_index": 47,
+      "start_time": 235.0,
+      "end_time": 240.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "neutral",
+      "confidence": 0.7722688913345337,
+      "all_emotions": {
+        "neutral": 0.7722688913345337,
+        "joy": 0.21900199353694916,
+        "anger": 0.0026779917534440756,
+        "sadness": 0.0060511245392262936
+      },
+      "segment_index": 48,
+      "start_time": 240.0,
+      "end_time": 245.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.6895484328269958,
+      "all_emotions": {
+        "neutral": 0.30752477049827576,
+        "joy": 0.6895484328269958,
+        "anger": 0.0010990190785378218,
+        "sadness": 0.0018277217168360949
+      },
+      "segment_index": 49,
+      "start_time": 245.0,
+      "end_time": 250.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.5932450294494629,
+      "all_emotions": {
+        "neutral": 0.36252179741859436,
+        "joy": 0.5932450294494629,
+        "anger": 0.0005245238426141441,
+        "sadness": 0.043708719313144684
+      },
+      "segment_index": 50,
+      "start_time": 250.0,
+      "end_time": 255.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "joy",
+      "confidence": 0.5704650282859802,
+      "all_emotions": {
+        "neutral": 0.39964529871940613,
+        "joy": 0.5704650282859802,
+        "anger": 0.004566273186355829,
+        "sadness": 0.025323491543531418
+      },
+      "segment_index": 51,
+      "start_time": 255.0,
+      "end_time": 260.0,
+      "duration": 5.0
+    },
+    {
+      "dominant_emotion": "anger",
+      "confidence": 0.8115004301071167,
+      "all_emotions": {
+        "neutral": 0.09310279786586761,
+        "joy": 0.09233330190181732,
+        "anger": 0.8115004301071167,
+        "sadness": 0.0030634745489805937
+      },
+      "segment_index": 52,
+      "start_time": 260.0,
+      "end_time": 261.00225,
+      "duration": 1.0022500000000036
+    }
+  ]
+}
