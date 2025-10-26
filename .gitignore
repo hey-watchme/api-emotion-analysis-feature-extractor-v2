@@ -29,7 +29,7 @@ _archive/
 # macOS
 .DS_Store
 
-# Docker
-Dockerfile
-Dockerfile.*
-docker-compose.yml
+# Docker（本番設定ファイルはコミット対象なので除外しない）
+# Dockerfile
+# Dockerfile.*
+# docker-compose.yml

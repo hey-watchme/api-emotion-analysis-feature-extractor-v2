@@ -56,12 +56,14 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
         # ARM64アーキテクチャ用にDockerイメージをビルド（キャッシュ無効化）
         docker buildx build \
           --platform linux/arm64 \
           --no-cache \
           --push \
+          --build-arg HF_TOKEN=$HF_TOKEN \
           -f Dockerfile \
           -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG \
           -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest \
