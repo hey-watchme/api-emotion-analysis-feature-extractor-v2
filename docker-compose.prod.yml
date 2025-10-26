@@ -16,11 +16,11 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 90s
+      start_period: 300s  # モデルダウンロード時間を考慮（90s → 300s）
     deploy:
       resources:
         limits:
-          memory: 1500M
+          memory: 1500M  # Kushinadaモデルのメモリ要件（サーバースペック内）
           cpus: '1.0'
 
 networks:

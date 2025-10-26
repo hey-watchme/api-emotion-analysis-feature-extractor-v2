@@ -77,19 +77,20 @@ else
     exit 1
 fi
 
-# ヘルスチェック
+# ヘルスチェック（Kushinadaモデルのダウンロード時間を考慮）
 echo "🏥 Running health check..."
-for i in {1..5}; do
+echo "⏳ Kushinadaモデルのダウンロード中（初回は3-5分かかります）..."
+for i in {1..12}; do
     if curl -f http://localhost:8018/health > /dev/null 2>&1; then
         echo "✅ Health check passed"
         echo "🎉 Deployment completed successfully!"
         exit 0
     fi
-    echo "  Attempt $i/5 failed, retrying in 5 seconds..."
-    sleep 5
+    echo "  Attempt $i/12 failed, retrying in 10 seconds..."
+    sleep 10
 done
 
-echo "⚠️ Health check failed after 5 attempts"
+echo "⚠️ Health check failed after 12 attempts (2 minutes)"
 echo "Container logs:"
 docker logs emotion-analysis-feature-extractor-v3 --tail 50
 exit 1
