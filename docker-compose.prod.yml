@@ -16,7 +16,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s  # モデルは既にイメージに含まれているため短縮
+      start_period: 60s  # 初回デプロイはモデルロードに約40秒かかる
     deploy:
       resources:
         limits:

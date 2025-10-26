@@ -77,19 +77,20 @@ else
     exit 1
 fi
 
-# ヘルスチェック（モデルは既にイメージに含まれているため高速起動）
+# ヘルスチェック（初回デプロイはモデルロードに約40秒かかる）
 echo "🏥 Running health check..."
-for i in {1..6}; do
+echo "⏳ モデルロード中（初回は約40秒かかります）..."
+for i in {1..12}; do
     if curl -f http://localhost:8018/health > /dev/null 2>&1; then
         echo "✅ Health check passed"
         echo "🎉 Deployment completed successfully!"
         exit 0
     fi
-    echo "  Attempt $i/6 failed, retrying in 5 seconds..."
+    echo "  Attempt $i/12 failed, retrying in 5 seconds..."
     sleep 5
 done
 
-echo "⚠️ Health check failed after 6 attempts (30 seconds)"
+echo "⚠️ Health check failed after 12 attempts (60 seconds)"
 echo "Container logs:"
 docker logs emotion-analysis-feature-extractor-v3 --tail 50
 exit 1
