@@ -210,15 +210,15 @@ class KushinadaAnalyzer:
             # Projector → Classifier
             projected = self.projector(pooled)
             logits = self.post_net(projected)
-            probs = torch.softmax(logits, dim=-1)
 
-        probs_np = probs[0].numpy()
-        predicted_class = probs_np.argmax()
+        # logitsをそのまま使用（情報劣化を防ぐため、softmaxは適用しない）
+        logits_np = logits[0].numpy()
+        predicted_class = logits_np.argmax()
 
-        # 4感情すべてのスコアを取得
-        emotion_scores = {LABEL_MAP[i]: float(probs_np[i]) for i in range(4)}
+        # 4感情すべてのlogitsを取得（生スコア: -∞～+∞の範囲）
+        emotion_scores = {LABEL_MAP[i]: float(logits_np[i]) for i in range(4)}
         dominant_emotion = LABEL_MAP[predicted_class]
-        confidence = float(probs_np[predicted_class])
+        confidence = float(logits_np[predicted_class])
 
         return {
             "dominant_emotion": dominant_emotion,
@@ -274,8 +274,7 @@ class KushinadaAnalyzer:
 
                     emotions.append({
                         "label": label,
-                        "score": round(score, 6),
-                        "percentage": round(score * 100, 3),
+                        "score": round(score, 6),  # logits生スコア（-∞～+∞）
                         "name_ja": info["ja"],
                         "name_en": info["en"],
                         "group": info["group"]

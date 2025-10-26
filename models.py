@@ -25,21 +25,20 @@ class ErrorResponse(BaseModel):
 
 class EmotionScore(BaseModel):
     """感情スコア"""
-    label: str = Field(description="感情ラベル（ang, hap, sad, neu, exc, fru, sur, dis）")
-    score: float = Field(description="スコア（0.0-1.0）")
-    percentage: float = Field(description="パーセンテージ（0.0-100.0）")
+    label: str = Field(description="感情ラベル（neutral, joy, anger, sadness）")
+    score: float = Field(description="logits生スコア（-∞～+∞の範囲、値が大きいほど強い感情）")
     name_ja: str = Field(description="日本語名")
     name_en: str = Field(description="英語名")
     group: str = Field(description="感情グループ")
 
 
 class ChunkResult(BaseModel):
-    """30秒チャンクの分析結果"""
+    """10秒チャンクの分析結果"""
     chunk_id: int = Field(description="チャンクID")
     start_time: float = Field(description="開始時間（秒）")
     end_time: float = Field(description="終了時間（秒）")
     duration: float = Field(description="チャンクの長さ（秒）")
-    emotions: List[EmotionScore] = Field(description="8感情のスコア")
+    emotions: List[EmotionScore] = Field(description="4感情のlogitsスコア")
     primary_emotion: EmotionScore = Field(description="最も強い感情")
 
 
