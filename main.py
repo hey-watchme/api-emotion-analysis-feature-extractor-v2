@@ -480,7 +480,7 @@ async def process_emotion_features(request: EmotionFeaturesRequest):
                     if chunks_results:
                         for chunk in chunks_results:
                             primary = chunk["primary_emotion"]
-                            print(f"  セグメント{chunk['chunk_id']}: {primary['name_ja']} ({primary['percentage']:.1f}%)")
+                            print(f"  セグメント{chunk['chunk_id']}: {primary['name_ja']} (スコア: {primary['score']:.2f})")
 
                     print(f"✅ 完了: {file_path} → {len(chunks_results)}セグメントの感情分析完了")
 
