@@ -2,6 +2,68 @@
 
 日本語音声の感情認識を行うAPIです。産総研（AIST）が開発したHuBERT-largeベースの**Kushinada**モデルを使用し、JTES（Japanese Twitter-based Emotional Speech）データセットで学習された感情分類を実行します。
 
+## 🗺️ ルーティング詳細
+
+| 項目 | 値 | 説明 |
+|------|-----|------|
+| **🏷️ サービス名** | Emotion Features API | 日本語音声感情認識（4感情） |
+| **📦 モデル** | Kushinada HuBERT-large | 産総研（AIST）開発モデル |
+| | | |
+| **🌐 外部アクセス（Nginx）** | | |
+| └ 公開エンドポイント | `https://api.hey-watch.me/emotion-analysis/feature-extractor/` | ✅ 統一命名規則に準拠 |
+| └ Nginx設定ファイル | `/etc/nginx/sites-available/api.hey-watch.me` | 98-120行目 |
+| └ proxy_pass先 | `http://localhost:8018/` | 内部転送先 |
+| └ タイムアウト | 180秒 | read/connect/send |
+| | | |
+| **🔌 API内部エンドポイント** | | |
+| └ ヘルスチェック | `/health` | GET |
+| └ ルート情報 | `/` | GET - API情報表示 |
+| └ **S3統合（重要）** | `/process/emotion-features` | POST - Lambdaが呼ぶべきエンドポイント |
+| | | |
+| **🐳 Docker/コンテナ** | | |
+| └ コンテナ名 | `emotion-analysis-feature-extractor-v3` | `docker ps`で表示される名前 |
+| └ ポート（内部） | 8018 | コンテナ内 |
+| └ ポート（公開） | `127.0.0.1:8018:8018` | ローカルホストのみ |
+| └ ヘルスチェック | `/health` | Docker healthcheck |
+| | | |
+| **☁️ AWS ECR** | | |
+| └ リポジトリ名 | `watchme-emotion-analysis-feature-extractor-v3` | イメージ保存先 |
+| └ リージョン | ap-southeast-2 (Sydney) | |
+| └ URI | `754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-emotion-analysis-feature-extractor-v3:latest` | |
+| | | |
+| **⚙️ systemd** | | |
+| └ サービス名 | （systemd未使用） | Docker Composeで直接起動 |
+| └ 起動コマンド | `docker-compose up -d` | |
+| └ 自動起動 | enabled | サーバー再起動時に自動起動 |
+| | | |
+| **📂 ディレクトリ** | | |
+| └ ソースコード | `/Users/kaya.matsumoto/projects/watchme/api/emotion-analysis/feature-extractor-v2` | ローカル |
+| └ GitHubリポジトリ | `hey-watchme/api-emotion-analysis-feature-extractor-v2` | |
+| └ EC2配置場所 | Docker内部のみ（ディレクトリなし） | ECR経由デプロイ |
+| | | |
+| **🔗 呼び出し元** | | |
+| └ Lambda関数 | `watchme-audio-worker` | 30分ごと |
+| └ 呼び出しURL | ✅ `https://api.hey-watch.me/emotion-analysis/feature-extractor/process/emotion-features` | **統一命名規則に準拠（2025-10-29修正）** |
+| └ 環境変数 | `API_BASE_URL=https://api.hey-watch.me` | Lambda内 |
+| └ API Manager（内部） | `http://emotion-analysis-feature-extractor-v3:8018/process/emotion-features` | Docker内部通信（正常） |
+
+### ✅ 統一命名規則への対応完了（2025-10-29）
+
+**API命名統一タスクに基づき、以下を修正**:
+
+1. **Nginxエンドポイント**: `/emotion-features/` → `/emotion-analysis/feature-extractor/`
+2. **Lambda関数**: URL修正完了（watchme-audio-worker）
+3. **統一原則**: `/{domain}/{service}/` に準拠
+   - domain: `emotion-analysis`
+   - service: `feature-extractor`
+
+**修正完了ファイル**:
+- ✅ `/watchme/server-configs/sites-available/api.hey-watch.me`
+- ✅ `/watchme/server-configs/lambda-functions/watchme-audio-worker/lambda_function.py`
+- ✅ `/watchme/api/emotion-analysis/feature-extractor-v2/README.md`
+
+---
+
 ## 🎯 概要
 
 - **モデル**: `imprt/kushinada-hubert-large-jtes-er`
