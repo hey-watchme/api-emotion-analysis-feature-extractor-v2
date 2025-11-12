@@ -1,122 +1,96 @@
 """
-Supabaseサービスレイヤー
-emotion_opensmileテーブルへのデータ保存を管理
+Supabase service layer for spot_features table (UTC-based architecture)
 """
 
-import json
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from supabase import Client
 
 
 class SupabaseService:
-    """Supabaseとの連携を管理するサービスクラス"""
-    
+    """Service class for Supabase integration with spot_features table"""
+
     def __init__(self, supabase_client: Client):
         self.supabase = supabase_client
-        self.table_name = "emotion_opensmile"
-    
-    async def upsert_emotion_data(
+        self.spot_features_table = "spot_features"
+        self.audio_files_table = "audio_files"
+
+    async def update_audio_files_status(
+        self,
+        file_path: str,
+        status: str = 'completed'
+    ) -> bool:
+        """
+        Update emotion_features_status in audio_files table
+
+        Args:
+            file_path: File path
+            status: Status ('pending', 'processing', 'completed', 'error')
+
+        Returns:
+            bool: Success or failure
+        """
+        try:
+            response = self.supabase.table(self.audio_files_table) \
+                .update({'emotion_features_status': status}) \
+                .eq('file_path', file_path) \
+                .execute()
+
+            if response.data:
+                print(f"✅ Status update success: {file_path} -> {status}")
+                return True
+            else:
+                print(f"⚠️ No record found: {file_path}")
+                return False
+
+        except Exception as e:
+            print(f"❌ Status update error: {str(e)}")
+            return False
+
+    async def save_to_spot_features(
         self,
         device_id: str,
-        date: str,
-        time_block: str,
-        filename: str,
-        duration_seconds: int,
-        features_timeline: List[Dict],
-        processing_time: float,
-        error: Optional[str] = None,
-        selected_features_timeline: Optional[List[Dict]] = None
-    ) -> Dict:
+        recorded_at: str,
+        timeline_data: List[Dict],
+        error: Optional[str] = None
+    ) -> bool:
         """
-        emotion_opensmileテーブルに感情データをUPSERT
-        
+        Save timeline-format emotion analysis results to spot_features table
+
         Args:
-            device_id: デバイスID
-            date: 日付 (YYYY-MM-DD形式)
-            time_block: 時間ブロック (HH-MM形式)
-            filename: 処理したファイル名
-            duration_seconds: 音声の長さ（秒）
-            features_timeline: SUPERBの感情分析結果（本来ここに保存）
-            processing_time: 処理時間
-            error: エラーメッセージ（あれば）
-            selected_features_timeline: 空配列を設定（互換性のため）
-            
+            device_id: Device ID
+            recorded_at: Recording timestamp (UTC timestamp)
+            timeline_data: Timeline-format emotion data
+            error: Error message (if any)
+
         Returns:
-            Dict: Supabaseからのレスポンス
+            bool: Success or failure
         """
         try:
-            # 現在のUTCタイムスタンプを取得
-            created_at = datetime.now(timezone.utc).isoformat()
-            
-            # データの準備
+            processed_at = datetime.now(timezone.utc).isoformat()
+
             data = {
-                "device_id": device_id,
-                "date": date,
-                "time_block": time_block,
-                "filename": filename,
-                "duration_seconds": duration_seconds,
-                "features_timeline": features_timeline,  # SUPERBの感情分析結果をここに保存
-                "selected_features_timeline": [],  # 空配列を設定
-                "processing_time": processing_time,
-                "error": error,
-                "status": "completed" if not error else "error",
-                "created_at": created_at  # タイムスタンプを追加
+                'device_id': device_id,
+                'recorded_at': recorded_at,
+                'emotion_extractor_result': timeline_data,
+                'emotion_extractor_status': 'completed' if not error else 'error',
+                'emotion_extractor_processed_at': processed_at
             }
-            
-            # UPSERT実行（プライマリキー: device_id, date, time_block）
-            response = self.supabase.table(self.table_name).upsert(
-                data,
-                on_conflict="device_id,date,time_block"
-            ).execute()
-            
-            print(f"✅ Supabase UPSERT成功: {device_id}/{date}/{time_block}")
-            return response.data
-            
+
+            if error:
+                data['emotion_extractor_result'] = {'error': error}
+
+            response = self.supabase.table(self.spot_features_table) \
+                .upsert(data) \
+                .execute()
+
+            if response.data:
+                print(f"✅ spot_features save success: {device_id}/{recorded_at}")
+                return True
+            else:
+                print(f"⚠️ Data save failed: Response is empty")
+                return False
+
         except Exception as e:
-            print(f"❌ Supabase UPSERT失敗: {str(e)}")
-            raise e
-    
-    async def batch_upsert_emotion_data(
-        self,
-        records: List[Dict]
-    ) -> List[Dict]:
-        """
-        複数のレコードを一度にUPSERT
-        
-        Args:
-            records: UPSERTするレコードのリスト
-            
-        Returns:
-            List[Dict]: Supabaseからのレスポンス
-        """
-        try:
-            # 現在のUTCタイムスタンプを取得
-            created_at = datetime.now(timezone.utc).isoformat()
-            
-            # statusとcreated_atを追加、データを正しいカラムに配置
-            for record in records:
-                if "status" not in record:
-                    record["status"] = "completed" if not record.get("error") else "error"
-                if "created_at" not in record:
-                    record["created_at"] = created_at
-                
-                # features_timelineとselected_features_timelineの入れ替え
-                # SUPERBの結果をfeatures_timelineに、selected_features_timelineは空に
-                if "selected_features_timeline" in record and record["selected_features_timeline"]:
-                    # 既存のselected_features_timelineのデータをfeatures_timelineに移動
-                    if not record.get("features_timeline") or record["features_timeline"] == []:
-                        record["features_timeline"] = record["selected_features_timeline"]
-                    record["selected_features_timeline"] = []
-            
-            response = self.supabase.table(self.table_name).upsert(
-                records,
-                on_conflict="device_id,date,time_block"
-            ).execute()
-            
-            print(f"✅ Supabase バッチUPSERT成功: {len(records)}件")
-            return response.data
-            
-        except Exception as e:
-            print(f"❌ Supabase バッチUPSERT失敗: {str(e)}")
-            raise e
+            print(f"❌ Data save error: {str(e)}")
+            return False

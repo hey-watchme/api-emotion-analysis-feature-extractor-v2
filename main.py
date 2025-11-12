@@ -310,51 +310,6 @@ class KushinadaAnalyzer:
 kushinada_analyzer = None
 
 
-def extract_info_from_file_path(file_path: str) -> dict:
-    """ファイルパスからデバイス情報を抽出
-
-    Args:
-        file_path: 'files/device_id/date/time/audio.wav' 形式
-
-    Returns:
-        dict: {'device_id': str, 'date': str, 'time_block': str}
-    """
-    parts = file_path.split('/')
-    if len(parts) >= 5:
-        return {
-            'device_id': parts[1],
-            'date': parts[2],
-            'time_block': parts[3]
-        }
-    else:
-        raise ValueError(f"不正なファイルパス形式: {file_path}")
-
-
-async def update_audio_files_status(file_path: str) -> bool:
-    """audio_filesテーブルのemotion_features_statusを更新
-
-    Args:
-        file_path: 処理完了したファイルのパス
-
-    Returns:
-        bool: 更新成功可否
-    """
-    try:
-        update_response = supabase_client.table('audio_files') \
-            .update({'emotion_features_status': 'completed'}) \
-            .eq('file_path', file_path) \
-            .execute()
-
-        if update_response.data:
-            print(f"✅ ステータス更新成功: {file_path}")
-            return True
-        else:
-            print(f"⚠️ 対象レコードが見つかりません: {file_path}")
-            return False
-
-    except Exception as e:
-        print(f"❌ ステータス更新エラー: {str(e)}")
-        return False
 
 
 # 起動時にモデルをロード
@@ -398,166 +353,138 @@ async def health_check():
 
 @app.post("/process/emotion-features", response_model=EmotionFeaturesResponse)
 async def process_emotion_features(request: EmotionFeaturesRequest):
-    """file_pathsベースの感情分析（OpenSMILE互換）"""
+    """file_paths-based emotion analysis (spot_features table with UTC timestamp)"""
     start_time = time.time()
 
     try:
-        print(f"\n=== Kushinada file_pathsベースによる感情分析開始 ===")
-        print(f"file_pathsパラメータ: {len(request.file_paths)}件のファイルを処理")
-        print(f"セグメント長: {SEGMENT_DURATION}秒")
+        print(f"\n=== Kushinada Emotion Analysis Start (UTC-based architecture) ===")
+        print(f"file_paths: {len(request.file_paths)} files to process")
+        print(f"Segment duration: {SEGMENT_DURATION} seconds")
         print(f"=" * 50)
 
         if not supabase_service:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Supabaseサービスが利用できません。環境変数を確認してください。"
+                detail="Supabase service unavailable. Check environment variables."
             )
 
         if not kushinada_analyzer or not kushinada_analyzer.loaded:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Kushinadaモデルがロードされていません。"
+                detail="Kushinada model not loaded."
             )
 
         processed_files = 0
         error_files = []
-        supabase_records = []
 
-        # 一時ディレクトリを作成してWAVファイルを処理
         with tempfile.TemporaryDirectory() as temp_dir:
             for file_path in request.file_paths:
                 try:
-                    print(f"\n📥 S3からファイル取得開始: {file_path}")
+                    print(f"\n📥 Fetching file from S3: {file_path}")
 
-                    # ファイルパスから情報を抽出
-                    path_info = extract_info_from_file_path(file_path)
-                    device_id = path_info['device_id']
-                    date = path_info['date']
-                    time_block = path_info['time_block']
+                    # Get device_id and recorded_at from audio_files table
+                    audio_file_response = supabase_client.table('audio_files') \
+                        .select('device_id, recorded_at') \
+                        .eq('file_path', file_path) \
+                        .single() \
+                        .execute()
 
-                    # S3から一時ファイルにダウンロード
-                    temp_file_path = os.path.join(temp_dir, f"{time_block}.wav")
+                    if not audio_file_response.data:
+                        print(f"⚠️ Audio file record not found: {file_path}")
+                        error_files.append(file_path)
+                        continue
+
+                    device_id = audio_file_response.data['device_id']
+                    recorded_at = audio_file_response.data['recorded_at']
+
+                    # Update status to processing
+                    await supabase_service.update_audio_files_status(file_path, 'processing')
+
+                    # Download from S3
+                    temp_file_path = os.path.join(temp_dir, f"{device_id}_{recorded_at}.wav")
 
                     try:
                         s3_client.download_file(s3_bucket_name, file_path, temp_file_path)
-                        print(f"✅ S3ダウンロード成功: {file_path}")
+                        print(f"✅ S3 download success: {file_path}")
                     except ClientError as e:
                         error_code = e.response['Error']['Code']
                         if error_code == 'NoSuchKey':
-                            print(f"⚠️ ファイルが見つかりません: {file_path}")
+                            print(f"⚠️ File not found: {file_path}")
+                            await supabase_service.update_audio_files_status(file_path, 'error')
                             error_files.append(file_path)
                             continue
                         else:
                             raise e
 
-                    print(f"🎵 Kushinada感情分析開始: {file_path}")
+                    print(f"🎵 Kushinada emotion analysis start: {file_path}")
 
-                    # 感情分析を実行
+                    # Run emotion analysis
                     analysis_start = time.time()
                     chunks_results, duration_seconds = kushinada_analyzer.analyze_audio_file(temp_file_path)
                     processing_time = time.time() - analysis_start
 
-                    processed_files += 1
+                    # Save to spot_features table
+                    save_success = await supabase_service.save_to_spot_features(
+                        device_id,
+                        recorded_at,
+                        chunks_results
+                    )
 
-                    # Supabase用のレコードを準備
-                    supabase_record = {
-                        "device_id": device_id,
-                        "date": date,
-                        "time_block": time_block,
-                        "filename": os.path.basename(file_path),
-                        "duration_seconds": duration_seconds,
-                        "features_timeline": chunks_results,  # Kushinadaの4感情結果
-                        "selected_features_timeline": [],  # 空配列を設定
-                        "processing_time": processing_time,
-                        "error": None
-                    }
-                    supabase_records.append(supabase_record)
+                    if save_success:
+                        # Update status to completed
+                        await supabase_service.update_audio_files_status(file_path, 'completed')
+                        processed_files += 1
 
-                    # audio_filesテーブルのステータスを更新
-                    await update_audio_files_status(file_path)
+                        # Display primary emotions
+                        if chunks_results:
+                            for chunk in chunks_results:
+                                primary = chunk["primary_emotion"]
+                                print(f"  Segment {chunk['chunk_id']}: {primary['name_ja']} (score: {primary['score']:.2f})")
 
-                    # 主要感情を表示
-                    if chunks_results:
-                        for chunk in chunks_results:
-                            primary = chunk["primary_emotion"]
-                            print(f"  セグメント{chunk['chunk_id']}: {primary['name_ja']} (スコア: {primary['score']:.2f})")
-
-                    print(f"✅ 完了: {file_path} → {len(chunks_results)}セグメントの感情分析完了")
+                        print(f"✅ Completed: {file_path} → {len(chunks_results)} segments analyzed")
+                    else:
+                        await supabase_service.update_audio_files_status(file_path, 'error')
+                        error_files.append(file_path)
 
                 except Exception as e:
                     error_files.append(file_path)
-                    print(f"❌ エラー: {file_path} - {str(e)}")
+                    print(f"❌ Error: {file_path} - {str(e)}")
 
-                    # エラーレコードもSupabaseに保存
+                    # Save error to spot_features
                     try:
-                        path_info = extract_info_from_file_path(file_path)
-                        supabase_record = {
-                            "device_id": path_info['device_id'],
-                            "date": path_info['date'],
-                            "time_block": path_info['time_block'],
-                            "filename": os.path.basename(file_path),
-                            "duration_seconds": 0,
-                            "features_timeline": [],
-                            "selected_features_timeline": [],
-                            "processing_time": 0,
-                            "error": str(e)
-                        }
-                        supabase_records.append(supabase_record)
+                        audio_file_response = supabase_client.table('audio_files') \
+                            .select('device_id, recorded_at') \
+                            .eq('file_path', file_path) \
+                            .single() \
+                            .execute()
+
+                        if audio_file_response.data:
+                            await supabase_service.save_to_spot_features(
+                                audio_file_response.data['device_id'],
+                                audio_file_response.data['recorded_at'],
+                                [],
+                                error=str(e)
+                            )
+                            await supabase_service.update_audio_files_status(file_path, 'error')
                     except:
                         pass
 
-        # Supabaseにバッチで保存
-        print(f"\n=== Supabase保存開始 ===")
-        print(f"保存対象: {len(supabase_records)} レコード")
-        print(f"=" * 50)
-
-        saved_count = 0
-        save_errors = []
-
-        if supabase_records:
-            try:
-                # バッチでUPSERT実行
-                await supabase_service.batch_upsert_emotion_data(supabase_records)
-                saved_count = len(supabase_records)
-                print(f"✅ Supabase保存成功: {saved_count} レコード")
-            except Exception as e:
-                print(f"❌ Supabaseバッチ保存エラー: {str(e)}")
-                # 個別に保存を試みる
-                for record in supabase_records:
-                    try:
-                        await supabase_service.upsert_emotion_data(
-                            device_id=record["device_id"],
-                            date=record["date"],
-                            time_block=record["time_block"],
-                            filename=record["filename"],
-                            duration_seconds=record["duration_seconds"],
-                            features_timeline=record["features_timeline"],
-                            processing_time=record["processing_time"],
-                            error=record.get("error"),
-                            selected_features_timeline=record.get("selected_features_timeline", [])
-                        )
-                        saved_count += 1
-                    except Exception as individual_error:
-                        save_errors.append(f"{record['time_block']}: {str(individual_error)}")
-                        print(f"❌ 個別保存エラー: {record['time_block']} - {str(individual_error)}")
-
-        # レスポンス作成
+        # Response
         total_time = time.time() - start_time
 
-        print(f"\n=== Kushinada感情分析完了 ===")
-        print(f"📥 S3処理: {processed_files} ファイル")
-        print(f"💾 Supabase保存: {saved_count} レコード")
-        print(f"❌ エラー: {len(error_files)} ファイル")
-        print(f"⏱️ 総処理時間: {total_time:.2f}秒")
+        print(f"\n=== Kushinada Emotion Analysis Complete ===")
+        print(f"📥 S3 processing: {processed_files} files")
+        print(f"❌ Errors: {len(error_files)} files")
+        print(f"⏱️ Total processing time: {total_time:.2f} seconds")
         print(f"=" * 50)
 
         return EmotionFeaturesResponse(
             success=True,
             processed_files=processed_files,
-            saved_count=saved_count,
+            saved_count=processed_files,
             error_files=error_files,
             total_processing_time=total_time,
-            message=f"S3から{processed_files}個のファイルを処理し、{saved_count}個のレコードをSupabaseに保存しました"
+            message=f"Processed {processed_files} files from S3 and saved to spot_features table"
         )
 
     except HTTPException:
@@ -565,7 +492,7 @@ async def process_emotion_features(request: EmotionFeaturesRequest):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"感情分析処理中にエラーが発生しました: {str(e)}"
+            detail=f"Error during emotion analysis: {str(e)}"
         )
 
 
