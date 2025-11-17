@@ -72,13 +72,8 @@ class SupabaseService:
             data = {
                 'device_id': device_id,
                 'recorded_at': recorded_at,
-                'emotion_extractor_result': timeline_data,
-                'emotion_extractor_status': 'completed' if not error else 'error',
-                'emotion_extractor_processed_at': processed_at
+                'emotion_extractor_result': timeline_data if not error else {'error': error}
             }
-
-            if error:
-                data['emotion_extractor_result'] = {'error': error}
 
             response = self.supabase.table(self.spot_features_table) \
                 .upsert(data) \
