@@ -26,22 +26,27 @@ echo "✅ .env file found"
 echo "🔐 Logging into Amazon ECR..."
 aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com
 
-echo "📥 Pulling latest image from ECR..."
-docker-compose -f docker-compose.prod.yml pull
+echo "📥 Pulling latest image from ECR (forced)..."
+# docker-compose pull ではなく、docker pull で強制的に最新を取得
+docker pull --platform linux/arm64 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-emotion-analysis-feature-extractor:latest
 
-# コンテナの完全削除（3層アプローチ）
+# プルしたイメージの確認
+echo "✅ Image pulled successfully:"
+docker images | grep watchme-emotion-analysis-feature-extractor | head -1
+
+# コンテナの完全削除（複数パターン対応）
 echo "🗑️ Removing existing containers..."
 
-# 1. 名前ベースの削除
-RUNNING_CONTAINERS=$(docker ps -q --filter "name=emotion-analysis-feature-extractor-v3")
+# 1. 新コンテナ名の削除
+RUNNING_CONTAINERS=$(docker ps -q --filter "name=emotion-analysis-feature-extractor")
 if [ ! -z "$RUNNING_CONTAINERS" ]; then
-    echo "  Stopping running containers..."
+    echo "  Stopping running containers (emotion-analysis-feature-extractor)..."
     docker stop $RUNNING_CONTAINERS
 fi
 
-ALL_CONTAINERS=$(docker ps -aq --filter "name=emotion-analysis-feature-extractor-v3")
+ALL_CONTAINERS=$(docker ps -aq --filter "name=emotion-analysis-feature-extractor")
 if [ ! -z "$ALL_CONTAINERS" ]; then
-    echo "  Removing all containers with matching name..."
+    echo "  Removing all containers (emotion-analysis-feature-extractor)..."
     docker rm -f $ALL_CONTAINERS
 fi
 
@@ -49,12 +54,14 @@ fi
 echo "  Running docker-compose down..."
 docker-compose -f docker-compose.prod.yml down || true
 
-# 3. 旧コンテナ名の削除（superb-api）
-OLD_CONTAINERS=$(docker ps -aq --filter "name=superb-api")
-if [ ! -z "$OLD_CONTAINERS" ]; then
-    echo "  Removing old containers (superb-api)..."
-    docker rm -f $OLD_CONTAINERS
-fi
+# 3. 旧コンテナ名の削除（v3表記、superb-api）
+for OLD_NAME in "emotion-analysis-feature-extractor-v3" "superb-api"; do
+    OLD_CONTAINERS=$(docker ps -aq --filter "name=$OLD_NAME")
+    if [ ! -z "$OLD_CONTAINERS" ]; then
+        echo "  Removing old containers ($OLD_NAME)..."
+        docker rm -f $OLD_CONTAINERS
+    fi
+done
 
 echo "✅ Container cleanup completed"
 
@@ -67,13 +74,13 @@ echo "⏳ Waiting for container to start..."
 sleep 10
 
 # コンテナステータス確認
-if docker ps | grep -q emotion-analysis-feature-extractor-v3; then
+if docker ps | grep -q emotion-analysis-feature-extractor; then
     echo "✅ Container is running"
-    docker ps | grep emotion-analysis-feature-extractor-v3
+    docker ps | grep emotion-analysis-feature-extractor
 else
     echo "❌ Container failed to start"
     echo "Recent logs:"
-    docker logs emotion-analysis-feature-extractor-v3 --tail 50 || true
+    docker logs emotion-analysis-feature-extractor --tail 50 || true
     exit 1
 fi
 
@@ -92,5 +99,5 @@ done
 
 echo "⚠️ Health check failed after 12 attempts (60 seconds)"
 echo "Container logs:"
-docker logs emotion-analysis-feature-extractor-v3 --tail 50
+docker logs emotion-analysis-feature-extractor --tail 50
 exit 1

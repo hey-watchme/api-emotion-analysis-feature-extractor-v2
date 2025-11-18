@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  emotion-analysis-feature-extractor-v3:
-    image: 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-emotion-analysis-feature-extractor-v3:latest
-    container_name: emotion-analysis-feature-extractor-v3
+  emotion-analysis-feature-extractor:
+    image: 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-emotion-analysis-feature-extractor:latest
+    container_name: emotion-analysis-feature-extractor
     ports:
       - "127.0.0.1:8018:8018"
     env_file:

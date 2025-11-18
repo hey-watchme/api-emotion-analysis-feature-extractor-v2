@@ -21,15 +21,15 @@
 | └ **S3統合（重要）** | `/process/emotion-features` | POST - Lambdaが呼ぶべきエンドポイント |
 | | | |
 | **🐳 Docker/コンテナ** | | |
-| └ コンテナ名 | `emotion-analysis-feature-extractor-v3` | `docker ps`で表示される名前 |
+| └ コンテナ名 | `emotion-analysis-feature-extractor` | `docker ps`で表示される名前 |
 | └ ポート（内部） | 8018 | コンテナ内 |
 | └ ポート（公開） | `127.0.0.1:8018:8018` | ローカルホストのみ |
 | └ ヘルスチェック | `/health` | Docker healthcheck |
 | | | |
 | **☁️ AWS ECR** | | |
-| └ リポジトリ名 | `watchme-emotion-analysis-feature-extractor-v3` | イメージ保存先 |
+| └ リポジトリ名 | `watchme-emotion-analysis-feature-extractor` | イメージ保存先 |
 | └ リージョン | ap-southeast-2 (Sydney) | |
-| └ URI | `754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-emotion-analysis-feature-extractor-v3:latest` | |
+| └ URI | `754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-emotion-analysis-feature-extractor:latest` | |
 | | | |
 | **⚙️ systemd** | | |
 | └ サービス名 | （systemd未使用） | Docker Composeで直接起動 |
@@ -45,7 +45,7 @@
 | └ Lambda関数 | `watchme-audio-worker` | 30分ごと |
 | └ 呼び出しURL | ✅ `https://api.hey-watch.me/emotion-analysis/feature-extractor/process/emotion-features` | **統一命名規則に準拠（2025-10-29修正）** |
 | └ 環境変数 | `API_BASE_URL=https://api.hey-watch.me` | Lambda内 |
-| └ API Manager（内部） | `http://emotion-analysis-feature-extractor-v3:8018/process/emotion-features` | Docker内部通信（正常） |
+| └ API Manager（内部） | `http://emotion-analysis-feature-extractor:8018/process/emotion-features` | Docker内部通信（正常） |
 
 ### ✅ 統一命名規則への対応完了（2025-10-29）
 
@@ -415,9 +415,9 @@ feature-extractor-v2/
 |------|------|
 | **デプロイ先** | EC2 (3.24.16.82) - ap-southeast-2 |
 | **エンドポイント** | https://api.hey-watch.me/emotion-analysis/features/ |
-| **コンテナ名** | emotion-analysis-feature-extractor-v3 |
+| **コンテナ名** | emotion-analysis-feature-extractor |
 | **ポート** | 8018 |
-| **ECRリポジトリ** | watchme-emotion-analysis-feature-extractor-v3 |
+| **ECRリポジトリ** | watchme-emotion-analysis-feature-extractor |
 | **デプロイ方式** | GitHub Actions（自動CI/CD） |
 | **リージョン** | ap-southeast-2 (Sydney) |
 
@@ -426,8 +426,9 @@ feature-extractor-v2/
 **2025-10-26: SUPERB (v3) → Kushinada (v2) への移行**
 
 - **移行理由**: 日本語音声に特化したモデルで怒り検出精度が大幅向上（84.77%）
-- **互換性**: v3と同じエンドポイント・コンテナ名・ポートを使用（シームレスな移行）
+- **互換性**: v3と同じエンドポイント・ポートを使用（シームレスな移行）
 - **データ形式**: OpenSMILE互換の`selected_features_timeline`形式を維持
+- **命名統一**: 2025-11-18にv3表記を削除し、統一的な命名規則に変更
 
 ### 自動デプロイ（CI/CD）
 
@@ -462,10 +463,10 @@ curl https://api.hey-watch.me/emotion-analysis/features/health
 ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
 
 # ログ確認
-docker logs emotion-analysis-feature-extractor-v3 --tail 100 -f
+docker logs emotion-analysis-feature-extractor --tail 100 -f
 
 # コンテナ状態確認
-docker ps | grep emotion-analysis-feature-extractor-v3
+docker ps | grep emotion-analysis-feature-extractor
 ```
 
 ### リソース要件
@@ -509,13 +510,13 @@ SEGMENT_DURATION=10
 2. **EC2のコンテナログを確認**
    ```bash
    ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
-   docker logs emotion-analysis-feature-extractor-v3 --tail 100
+   docker logs emotion-analysis-feature-extractor --tail 100
    ```
 
 3. **環境変数の確認**
    ```bash
    ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
-   cat /home/ubuntu/emotion-analysis-feature-extractor-v3/.env
+   cat /home/ubuntu/emotion-analysis-feature-extractor/.env
    ```
 
 #### コンテナが起動しない場合
@@ -523,7 +524,7 @@ SEGMENT_DURATION=10
 ```bash
 # コンテナを完全削除して再起動
 ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
-cd /home/ubuntu/emotion-analysis-feature-extractor-v3
+cd /home/ubuntu/emotion-analysis-feature-extractor
 ./run-prod.sh
 ```
 

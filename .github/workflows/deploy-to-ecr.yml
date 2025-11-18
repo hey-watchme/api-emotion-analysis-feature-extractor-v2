@@ -9,10 +9,10 @@ on:
   # 手動実行も可能にする
   workflow_dispatch:
 
-# 環境変数（重要: v3と完全に同じ名前を使用して置き換え）
+# 環境変数
 env:
   AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: watchme-emotion-analysis-feature-extractor-v3
+  ECR_REPOSITORY: watchme-emotion-analysis-feature-extractor
 
 # ジョブの定義
 jobs:
@@ -42,14 +42,16 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    # ステップ5: 古いイメージをECRから削除（オプション、推奨）
-    - name: Delete old images from ECR (optional but recommended)
+    # ステップ5: 古いイメージをECRから削除（確実に削除）
+    - name: Delete old images from ECR (mandatory)
       run: |
-        # 古いlatestタグを削除（エラーは無視）
+        # 古いlatestタグを確実に削除
+        echo "🗑️ Deleting old 'latest' tag from ECR..."
         aws ecr batch-delete-image \
           --region ${{ env.AWS_REGION }} \
           --repository-name ${{ env.ECR_REPOSITORY }} \
-          --image-ids imageTag=latest || true
+          --image-ids imageTag=latest 2>&1 || echo "No existing 'latest' tag found"
+        echo "✅ Old image deleted from ECR"
 
     # ステップ6: Dockerイメージのビルド、タグ付け、プッシュ（ARM64対応）
     - name: Build, tag, and push image to Amazon ECR
@@ -84,7 +86,7 @@ jobs:
         echo ""
         echo "📋 Next Steps:"
         echo "1. SSH to EC2: ssh -i ~/watchme-key.pem ubuntu@3.24.16.82"
-        echo "2. Deploy: cd /home/ubuntu/emotion-analysis-feature-extractor-v3 && ./run-prod.sh"
+        echo "2. Deploy: cd /home/ubuntu/emotion-analysis-feature-extractor && ./run-prod.sh"
 
     # ステップ8: エラー時の通知
     - name: Deploy Failure Notification
@@ -124,7 +126,7 @@ jobs:
         EC2_USER: ${{ secrets.EC2_USER }}
       run: |
         echo "📁 Creating application directory on EC2..."
-        ssh ${EC2_USER}@${EC2_HOST} "mkdir -p /home/ubuntu/emotion-analysis-feature-extractor-v3"
+        ssh ${EC2_USER}@${EC2_HOST} "mkdir -p /home/ubuntu/emotion-analysis-feature-extractor"
         echo "✅ Directory created/verified"
 
     # ステップ5: docker-compose.prod.ymlとrun-prod.shをEC2にコピー（重要！）
@@ -134,9 +136,9 @@ jobs:
         EC2_USER: ${{ secrets.EC2_USER }}
       run: |
         echo "📦 Updating configuration files on EC2..."
-        scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${EC2_USER}@${EC2_HOST}:/home/ubuntu/emotion-analysis-feature-extractor-v3/
-        scp -o StrictHostKeyChecking=no run-prod.sh ${EC2_USER}@${EC2_HOST}:/home/ubuntu/emotion-analysis-feature-extractor-v3/
-        ssh ${EC2_USER}@${EC2_HOST} "chmod +x /home/ubuntu/emotion-analysis-feature-extractor-v3/run-prod.sh"
+        scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${EC2_USER}@${EC2_HOST}:/home/ubuntu/emotion-analysis-feature-extractor/
+        scp -o StrictHostKeyChecking=no run-prod.sh ${EC2_USER}@${EC2_HOST}:/home/ubuntu/emotion-analysis-feature-extractor/
+        ssh ${EC2_USER}@${EC2_HOST} "chmod +x /home/ubuntu/emotion-analysis-feature-extractor/run-prod.sh"
         echo "✅ Configuration files updated"
 
     # ステップ6: 環境変数ファイルの作成/更新（Kushinadaに必要な環境変数を追加）
@@ -155,7 +157,7 @@ jobs:
         # SSH接続して.envファイルを作成
         # 重要: echoコマンドで確実に環境変数を渡す（推奨方法）
         ssh ${EC2_USER}@${EC2_HOST} << ENDSSH
-          cd /home/ubuntu/emotion-analysis-feature-extractor-v3
+          cd /home/ubuntu/emotion-analysis-feature-extractor
           echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" > .env
           echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" >> .env
           echo "AWS_REGION=ap-southeast-2" >> .env
@@ -166,7 +168,7 @@ jobs:
         ENDSSH
 
         # 作成確認
-        ssh ${EC2_USER}@${EC2_HOST} "echo '✅ .env file created/updated successfully' && wc -l /home/ubuntu/emotion-analysis-feature-extractor-v3/.env"
+        ssh ${EC2_USER}@${EC2_HOST} "echo '✅ .env file created/updated successfully' && wc -l /home/ubuntu/emotion-analysis-feature-extractor/.env"
 
     # ステップ7: EC2にデプロイ
     - name: Deploy to EC2 instance
@@ -180,14 +182,13 @@ jobs:
         ssh ${EC2_USER}@${EC2_HOST} << 'ENDSSH'
           set -e
           echo "📦 Navigating to application directory..."
-          cd /home/ubuntu/emotion-analysis-feature-extractor-v3
+          cd /home/ubuntu/emotion-analysis-feature-extractor
 
-          echo "🗑️ Cleaning up old Docker images..."
-          # 古いコンテナを停止
+          echo "🗑️ Cleaning up old containers..."
+          # 古いコンテナを停止・削除
           docker-compose -f docker-compose.prod.yml down || true
 
-          # すべての未使用イメージを完全削除（標準仕様書推奨）
-          docker system prune -a -f
+          # ❌ docker system prune -a -f は削除（イメージキャッシュ問題を回避）
 
           echo "🔄 Running deployment script..."
           ./run-prod.sh
@@ -196,7 +197,7 @@ jobs:
 
           # コンテナの状態確認
           echo "📊 Checking container status..."
-          docker ps | grep emotion-analysis-feature-extractor-v3 || echo "⚠️ Container not found"
+          docker ps | grep emotion-analysis-feature-extractor || echo "⚠️ Container not found"
 
           # ヘルスチェック（初回デプロイはモデルロードに約40秒かかる）
           echo "🏥 Running health check..."
@@ -223,7 +224,7 @@ jobs:
       if: success()
       run: |
         echo "🎉 Full CI/CD pipeline completed successfully!"
-        echo "📦 Service: emotion-analysis-feature-extractor-v3 (Kushinada)"
+        echo "📦 Service: emotion-analysis-feature-extractor (Kushinada v2)"
         echo "🌐 URL: https://api.hey-watch.me/emotion-analysis/features/"
         echo "🏷️ Version: ${{ github.sha }}"
 
