@@ -89,3 +89,32 @@ class SupabaseService:
         except Exception as e:
             print(f"❌ Data save error: {str(e)}")
             return False
+
+    async def update_status(self, device_id: str, recorded_at: str, status_field: str, status_value: str):
+        """Update processing status in spot_features table"""
+        try:
+            response = self.supabase.table('spot_features').update({
+                status_field: status_value,
+                'updated_at': datetime.utcnow().isoformat()
+            }).eq(
+                'device_id', device_id
+            ).eq(
+                'recorded_at', recorded_at
+            ).execute()
+
+            if response.data:
+                print(f"Status updated: {device_id}/{recorded_at} - {status_field}={status_value}")
+            else:
+                insert_data = {
+                    'device_id': device_id,
+                    'recorded_at': recorded_at,
+                    status_field: status_value,
+                    'created_at': datetime.utcnow().isoformat(),
+                    'updated_at': datetime.utcnow().isoformat()
+                }
+                self.supabase.table('spot_features').insert(insert_data).execute()
+                print(f"Status record created: {device_id}/{recorded_at} - {status_field}={status_value}")
+
+        except Exception as e:
+            print(f"Failed to update status: {str(e)}")
+            raise

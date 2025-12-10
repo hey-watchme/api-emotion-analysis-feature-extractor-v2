@@ -19,11 +19,14 @@ from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import uvicorn
 from typing import Dict, List, Optional
+from datetime import datetime
+import json
 
 from models import (
     HealthResponse,
@@ -85,6 +88,13 @@ s3_client = boto3.client(
     region_name=aws_region
 )
 print(f"✅ AWS S3接続設定完了: バケット={s3_bucket_name}, リージョン={aws_region}")
+
+# AWS SQSクライアントの初期化
+sqs = boto3.client('sqs', region_name='ap-southeast-2')
+FEATURE_COMPLETED_QUEUE_URL = os.environ.get(
+    'FEATURE_COMPLETED_QUEUE_URL',
+    'https://sqs.ap-southeast-2.amazonaws.com/754724220380/watchme-feature-completed-queue'
+)
 
 # セグメント設定
 SEGMENT_DURATION = 10.0  # 10秒固定（最適バランス確認済み）
@@ -348,6 +358,85 @@ async def health_check():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Service unhealthy: {str(e)}"
+        )
+
+
+# Request model for async processing
+class AsyncProcessRequest(BaseModel):
+    file_path: str
+    device_id: str
+    recorded_at: str
+
+@app.post("/async-process", status_code=202)
+async def async_process(
+    request: AsyncProcessRequest,
+    background_tasks: BackgroundTasks
+):
+    """Asynchronous processing endpoint - returns 202 Accepted immediately"""
+    print(f"Starting async processing for {request.device_id} at {request.recorded_at}")
+
+    # Update status to 'processing'
+    try:
+        await supabase_service.update_status(request.device_id, request.recorded_at, "emotion_status", "processing")
+    except Exception as e:
+        print(f"Failed to update status: {e}")
+
+    # Add to background tasks
+    background_tasks.add_task(
+        process_in_background,
+        request.file_path,
+        request.device_id,
+        request.recorded_at
+    )
+
+    return {
+        "status": "accepted",
+        "message": "Processing started in background",
+        "device_id": request.device_id,
+        "recorded_at": request.recorded_at
+    }
+
+
+async def process_in_background(file_path: str, device_id: str, recorded_at: str):
+    """Background processing function"""
+    print(f"Background processing started for {device_id}")
+
+    try:
+        request = EmotionFeaturesRequest(file_paths=[file_path])
+        result = await process_emotion_features(request)
+
+        await supabase_service.update_status(device_id, recorded_at, "emotion_status", "completed")
+
+        sqs.send_message(
+            QueueUrl=FEATURE_COMPLETED_QUEUE_URL,
+            MessageBody=json.dumps({
+                "device_id": device_id,
+                "recorded_at": recorded_at,
+                "feature_type": "emotion",
+                "status": "completed",
+                "processed_files": result.processed_files
+            })
+        )
+
+        print(f"Background processing completed for {device_id}")
+
+    except Exception as e:
+        print(f"Background processing failed for {device_id}: {str(e)}")
+
+        try:
+            await supabase_service.update_status(device_id, recorded_at, "emotion_status", "failed")
+        except:
+            pass
+
+        sqs.send_message(
+            QueueUrl=FEATURE_COMPLETED_QUEUE_URL,
+            MessageBody=json.dumps({
+                "device_id": device_id,
+                "recorded_at": recorded_at,
+                "feature_type": "emotion",
+                "status": "failed",
+                "error": str(e)
+            })
         )
 
 
