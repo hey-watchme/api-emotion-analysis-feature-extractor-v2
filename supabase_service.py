@@ -94,8 +94,7 @@ class SupabaseService:
         """Update processing status in spot_features table"""
         try:
             response = self.supabase.table('spot_features').update({
-                status_field: status_value,
-                'updated_at': datetime.utcnow().isoformat()
+                status_field: status_value
             }).eq(
                 'device_id', device_id
             ).eq(
@@ -108,9 +107,7 @@ class SupabaseService:
                 insert_data = {
                     'device_id': device_id,
                     'recorded_at': recorded_at,
-                    status_field: status_value,
-                    'created_at': datetime.utcnow().isoformat(),
-                    'updated_at': datetime.utcnow().isoformat()
+                    status_field: status_value
                 }
                 self.supabase.table('spot_features').insert(insert_data).execute()
                 print(f"Status record created: {device_id}/{recorded_at} - {status_field}={status_value}")
