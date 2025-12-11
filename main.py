@@ -375,13 +375,7 @@ async def async_process(
     """Asynchronous processing endpoint - returns 202 Accepted immediately"""
     print(f"Starting async processing for {request.device_id} at {request.recorded_at}")
 
-    # Update status to 'processing'
-    try:
-        await supabase_service.update_status(request.device_id, request.recorded_at, "emotion_status", "processing")
-    except Exception as e:
-        print(f"Failed to update status: {e}")
-
-    # Add to background tasks
+    # Add to background tasks (including status update)
     background_tasks.add_task(
         process_in_background,
         request.file_path,
@@ -400,6 +394,12 @@ async def async_process(
 async def process_in_background(file_path: str, device_id: str, recorded_at: str):
     """Background processing function"""
     print(f"Background processing started for {device_id}")
+
+    # Update status to 'processing'
+    try:
+        await supabase_service.update_status(device_id, recorded_at, "emotion_status", "processing")
+    except Exception as e:
+        print(f"Failed to update status to processing: {e}")
 
     try:
         request = EmotionFeaturesRequest(file_paths=[file_path])
