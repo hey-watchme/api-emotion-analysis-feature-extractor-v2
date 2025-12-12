@@ -486,9 +486,6 @@ async def process_emotion_features(request: EmotionFeaturesRequest):
                     device_id = audio_file_response.data['device_id']
                     recorded_at = audio_file_response.data['recorded_at']
 
-                    # Update status to processing
-                    await supabase_service.update_audio_files_status(file_path, 'processing')
-
                     # Download from S3
                     temp_file_path = os.path.join(temp_dir, f"{device_id}_{recorded_at}.wav")
 
@@ -499,7 +496,6 @@ async def process_emotion_features(request: EmotionFeaturesRequest):
                         error_code = e.response['Error']['Code']
                         if error_code == 'NoSuchKey':
                             print(f"⚠️ File not found: {file_path}")
-                            await supabase_service.update_audio_files_status(file_path, 'error')
                             error_files.append(file_path)
                             continue
                         else:
@@ -520,8 +516,6 @@ async def process_emotion_features(request: EmotionFeaturesRequest):
                     )
 
                     if save_success:
-                        # Update status to completed
-                        await supabase_service.update_audio_files_status(file_path, 'completed')
                         processed_files += 1
 
                         # Display primary emotions
@@ -532,7 +526,6 @@ async def process_emotion_features(request: EmotionFeaturesRequest):
 
                         print(f"✅ Completed: {file_path} → {len(chunks_results)} segments analyzed")
                     else:
-                        await supabase_service.update_audio_files_status(file_path, 'error')
                         error_files.append(file_path)
 
                 except Exception as e:
@@ -554,7 +547,6 @@ async def process_emotion_features(request: EmotionFeaturesRequest):
                                 [],
                                 error=str(e)
                             )
-                            await supabase_service.update_audio_files_status(file_path, 'error')
                     except:
                         pass
 
