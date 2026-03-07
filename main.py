@@ -10,6 +10,8 @@ import gc
 import time
 import tempfile
 import asyncio
+import hashlib
+import threading
 import torch
 import librosa
 import numpy as np
@@ -108,9 +110,23 @@ def _read_max_workers(env_name: str, default: int = 1) -> int:
         return default
 
 
+def _read_bool(env_name: str, default: bool = False) -> bool:
+    raw_value = os.environ.get(env_name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 SER_ASYNC_JOB_WORKERS = _read_max_workers("SER_ASYNC_JOB_WORKERS", 1)
 ser_async_executor = ThreadPoolExecutor(max_workers=SER_ASYNC_JOB_WORKERS)
 print(f"ℹ️ SER async job workers: {SER_ASYNC_JOB_WORKERS}")
+
+SER_JOB_QUEUE_URL = os.environ.get("SER_JOB_QUEUE_URL", "")
+SER_JOB_QUEUE_ENABLED = _read_bool("SER_JOB_QUEUE_ENABLED", False)
+SER_JOB_QUEUE_WAIT_SECONDS = max(1, min(20, int(os.environ.get("SER_JOB_QUEUE_WAIT_SECONDS", "20"))))
+SER_JOB_QUEUE_VISIBILITY_TIMEOUT = max(60, int(os.environ.get("SER_JOB_QUEUE_VISIBILITY_TIMEOUT", "600")))
+ser_queue_worker_stop_event = threading.Event()
+ser_queue_worker_thread: Optional[threading.Thread] = None
 
 # セグメント設定
 SEGMENT_DURATION = 10.0  # 10秒固定（最適バランス確認済み）
@@ -342,13 +358,30 @@ kushinada_analyzer = None
 @app.on_event("startup")
 async def startup_event():
     global kushinada_analyzer
+    global ser_queue_worker_thread
+
     kushinada_analyzer = KushinadaAnalyzer()
     kushinada_analyzer.load_models()
+
+    if SER_JOB_QUEUE_ENABLED and SER_JOB_QUEUE_URL:
+        ser_queue_worker_stop_event.clear()
+        ser_queue_worker_thread = threading.Thread(
+            target=_consume_ser_job_queue,
+            name="ser-job-queue-worker",
+            daemon=True,
+        )
+        ser_queue_worker_thread.start()
+        print(f"✅ SER queue worker started: {SER_JOB_QUEUE_URL}")
+    else:
+        print("ℹ️ SER queue worker disabled (using in-process executor fallback)")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """サーバー終了時に非同期ジョブ実行スレッドを停止"""
+    ser_queue_worker_stop_event.set()
+    if ser_queue_worker_thread and ser_queue_worker_thread.is_alive():
+        ser_queue_worker_thread.join(timeout=2)
     ser_async_executor.shutdown(wait=False, cancel_futures=False)
 
 
@@ -396,20 +429,98 @@ async def async_process(
     """Asynchronous processing endpoint - returns 202 Accepted immediately"""
     print(f"Starting async processing for {request.device_id} at {request.recorded_at}")
 
-    # Offload heavy processing to a dedicated thread so the API can acknowledge immediately.
-    ser_async_executor.submit(
-        _run_process_in_background,
-        request.file_path,
-        request.device_id,
-        request.recorded_at
-    )
+    message = "Processing started in background"
+    transport = "in_process_executor"
+
+    if SER_JOB_QUEUE_ENABLED and SER_JOB_QUEUE_URL:
+        try:
+            if supabase_service:
+                await supabase_service.update_status(request.device_id, request.recorded_at, "emotion_status", "queued")
+            _enqueue_ser_job(
+                file_path=request.file_path,
+                device_id=request.device_id,
+                recorded_at=request.recorded_at,
+                trigger_source="ser-worker",
+            )
+            message = "Processing queued"
+            transport = "sqs"
+        except Exception as e:
+            print(f"⚠️ Failed to enqueue SER job, fallback to in-process executor: {e}")
+
+    if transport != "sqs":
+        # Fallback mode for environments where queue worker rollout is not enabled yet.
+        ser_async_executor.submit(
+            _run_process_in_background,
+            request.file_path,
+            request.device_id,
+            request.recorded_at
+        )
 
     return {
         "status": "accepted",
-        "message": "Processing started in background",
+        "message": message,
+        "transport": transport,
         "device_id": request.device_id,
         "recorded_at": request.recorded_at
     }
+
+
+def _enqueue_ser_job(*, file_path: str, device_id: str, recorded_at: str, trigger_source: str) -> None:
+    payload = {
+        "file_path": file_path,
+        "device_id": device_id,
+        "recorded_at": recorded_at,
+        "feature_type": "emotion",
+        "trigger_source": trigger_source,
+        "queued_at": int(time.time()),
+    }
+
+    send_kwargs = {
+        "QueueUrl": SER_JOB_QUEUE_URL,
+        "MessageBody": json.dumps(payload),
+    }
+
+    if SER_JOB_QUEUE_URL.endswith(".fifo"):
+        dedupe_input = f"{device_id}:{recorded_at}:{file_path}:emotion"
+        send_kwargs["MessageGroupId"] = f"{device_id}-emotion"
+        send_kwargs["MessageDeduplicationId"] = hashlib.sha256(dedupe_input.encode("utf-8")).hexdigest()[:80]
+
+    sqs.send_message(**send_kwargs)
+
+
+def _consume_ser_job_queue() -> None:
+    print("🔁 SER queue consumer loop started")
+
+    while not ser_queue_worker_stop_event.is_set():
+        try:
+            response = sqs.receive_message(
+                QueueUrl=SER_JOB_QUEUE_URL,
+                MaxNumberOfMessages=1,
+                WaitTimeSeconds=SER_JOB_QUEUE_WAIT_SECONDS,
+                VisibilityTimeout=SER_JOB_QUEUE_VISIBILITY_TIMEOUT,
+            )
+            messages = response.get("Messages", [])
+            if not messages:
+                continue
+
+            for message in messages:
+                receipt_handle = message["ReceiptHandle"]
+                body = json.loads(message["Body"])
+
+                file_path = body["file_path"]
+                device_id = body["device_id"]
+                recorded_at = body["recorded_at"]
+
+                try:
+                    asyncio.run(process_in_background(file_path, device_id, recorded_at))
+                    sqs.delete_message(QueueUrl=SER_JOB_QUEUE_URL, ReceiptHandle=receipt_handle)
+                    print(f"✅ SER queue job done: {device_id}/{recorded_at}")
+                except Exception as e:
+                    print(f"❌ SER queue job failed (will retry): {device_id}/{recorded_at} - {e}")
+
+        except Exception as e:
+            print(f"❌ SER queue consumer error: {e}")
+            time.sleep(2)
 
 
 def _run_process_in_background(file_path: str, device_id: str, recorded_at: str):

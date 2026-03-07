@@ -170,6 +170,10 @@ jobs:
           echo "SUPABASE_URL=${SUPABASE_URL}" >> .env
           echo "SUPABASE_KEY=${SUPABASE_KEY}" >> .env
           echo "HF_TOKEN=${HF_TOKEN}" >> .env
+          echo "SER_JOB_QUEUE_ENABLED=true" >> .env
+          echo "SER_JOB_QUEUE_URL=https://sqs.ap-southeast-2.amazonaws.com/754724220380/watchme-ser-job-queue-v1.fifo" >> .env
+          echo "SER_JOB_QUEUE_WAIT_SECONDS=20" >> .env
+          echo "SER_JOB_QUEUE_VISIBILITY_TIMEOUT=600" >> .env
         ENDSSH
 
         # 作成確認
