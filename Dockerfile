@@ -15,10 +15,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# アプリケーションコードをコピー
-COPY main.py .
-COPY models.py .
-COPY supabase_service.py .
+# 重要: ビルド時と実行時で同じキャッシュパスを使い、モデルレイヤーの再利用性を高める
+ENV TRANSFORMERS_CACHE=/app/.cache
+ENV HF_HOME=/app/.cache/huggingface
 
 # HuggingFaceトークンを引数から受け取る（ビルド時のみ使用）
 ARG HF_TOKEN
@@ -43,13 +42,17 @@ checkpoint_path = hf_hub_download( \
 print(f'✅ チェックポイントダウンロード完了: {checkpoint_path}'); \
 "
 
+# アプリケーションコードをコピー
+COPY main.py .
+COPY models.py .
+COPY supabase_service.py .
+
 # ポート8018を公開
 EXPOSE 8018
 
 # 環境変数の設定
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
-ENV TRANSFORMERS_CACHE=/app/.cache
 
 # ヘルスチェック
 # start-period: モデルが既にイメージに含まれているため30秒で十分

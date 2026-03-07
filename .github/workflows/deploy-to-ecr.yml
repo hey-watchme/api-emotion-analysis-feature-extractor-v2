@@ -9,6 +9,10 @@ on:
   # 手動実行も可能にする
   workflow_dispatch:
 
+concurrency:
+  group: emotion-feature-extractor-${{ github.ref }}
+  cancel-in-progress: true
+
 # 環境変数
 env:
   AWS_REGION: ap-southeast-2
@@ -60,10 +64,11 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
       run: |
-        # ARM64アーキテクチャ用にDockerイメージをビルド（キャッシュ無効化）
+        # ARM64アーキテクチャ用にDockerイメージをビルド（Buildxキャッシュ有効）
         docker buildx build \
           --platform linux/arm64 \
-          --no-cache \
+          --cache-from type=registry,ref=$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:buildcache \
+          --cache-to type=registry,ref=$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true \
           --push \
           --build-arg HF_TOKEN=$HF_TOKEN \
           -f Dockerfile \

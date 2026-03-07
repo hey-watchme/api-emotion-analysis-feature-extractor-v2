@@ -47,5 +47,9 @@ huggingface/
 *_backup.*
 *_original.py
 
+# Development archives/caches (not required for production image build context)
+_archive/
+s3prl_cache/
+
 # IMPORTANT: DO NOT ignore checkpoints/ - it's needed for Kushinada
 # checkpoints/ は除外しない（Kushinadaの動作に必須）
