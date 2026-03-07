@@ -121,8 +121,12 @@ SER_ASYNC_JOB_WORKERS = _read_max_workers("SER_ASYNC_JOB_WORKERS", 1)
 ser_async_executor = ThreadPoolExecutor(max_workers=SER_ASYNC_JOB_WORKERS)
 print(f"ℹ️ SER async job workers: {SER_ASYNC_JOB_WORKERS}")
 
-SER_JOB_QUEUE_URL = os.environ.get("SER_JOB_QUEUE_URL", "")
-SER_JOB_QUEUE_ENABLED = _read_bool("SER_JOB_QUEUE_ENABLED", False)
+SER_JOB_QUEUE_URL = os.environ.get(
+    "SER_JOB_QUEUE_URL",
+    "https://sqs.ap-southeast-2.amazonaws.com/754724220380/watchme-ser-job-queue-v1.fifo",
+)
+SER_JOB_QUEUE_ENABLED = _read_bool("SER_JOB_QUEUE_ENABLED", True)
+SER_ALLOW_IN_PROCESS_FALLBACK = _read_bool("SER_ALLOW_IN_PROCESS_FALLBACK", False)
 SER_JOB_QUEUE_WAIT_SECONDS = max(1, min(20, int(os.environ.get("SER_JOB_QUEUE_WAIT_SECONDS", "20"))))
 SER_JOB_QUEUE_VISIBILITY_TIMEOUT = max(60, int(os.environ.get("SER_JOB_QUEUE_VISIBILITY_TIMEOUT", "600")))
 ser_queue_worker_stop_event = threading.Event()
@@ -373,7 +377,7 @@ async def startup_event():
         ser_queue_worker_thread.start()
         print(f"✅ SER queue worker started: {SER_JOB_QUEUE_URL}")
     else:
-        print("ℹ️ SER queue worker disabled (using in-process executor fallback)")
+        print("ℹ️ SER queue worker disabled")
 
 
 @app.on_event("shutdown")
@@ -429,37 +433,54 @@ async def async_process(
     """Asynchronous processing endpoint - returns 202 Accepted immediately"""
     print(f"Starting async processing for {request.device_id} at {request.recorded_at}")
 
-    message = "Processing started in background"
-    transport = "in_process_executor"
-
-    if SER_JOB_QUEUE_ENABLED and SER_JOB_QUEUE_URL:
-        try:
-            if supabase_service:
-                await supabase_service.update_status(request.device_id, request.recorded_at, "emotion_status", "queued")
-            _enqueue_ser_job(
-                file_path=request.file_path,
-                device_id=request.device_id,
-                recorded_at=request.recorded_at,
-                trigger_source="ser-worker",
-            )
-            message = "Processing queued"
-            transport = "sqs"
-        except Exception as e:
-            print(f"⚠️ Failed to enqueue SER job, fallback to in-process executor: {e}")
-
-    if transport != "sqs":
-        # Fallback mode for environments where queue worker rollout is not enabled yet.
+    if not SER_JOB_QUEUE_ENABLED or not SER_JOB_QUEUE_URL:
+        if not SER_ALLOW_IN_PROCESS_FALLBACK:
+            raise HTTPException(status_code=503, detail="SER queue mode is disabled or misconfigured")
         ser_async_executor.submit(
             _run_process_in_background,
             request.file_path,
             request.device_id,
             request.recorded_at
         )
+        return {
+            "status": "accepted",
+            "message": "Processing started in background",
+            "transport": "in_process_executor",
+            "device_id": request.device_id,
+            "recorded_at": request.recorded_at
+        }
+
+    try:
+        if supabase_service:
+            await supabase_service.update_status(request.device_id, request.recorded_at, "emotion_status", "queued")
+        _enqueue_ser_job(
+            file_path=request.file_path,
+            device_id=request.device_id,
+            recorded_at=request.recorded_at,
+            trigger_source="ser-worker",
+        )
+    except Exception as e:
+        print(f"❌ Failed to enqueue SER job: {e}")
+        if not SER_ALLOW_IN_PROCESS_FALLBACK:
+            raise HTTPException(status_code=503, detail="Failed to enqueue SER job")
+        ser_async_executor.submit(
+            _run_process_in_background,
+            request.file_path,
+            request.device_id,
+            request.recorded_at
+        )
+        return {
+            "status": "accepted",
+            "message": "Processing started in background",
+            "transport": "in_process_executor",
+            "device_id": request.device_id,
+            "recorded_at": request.recorded_at
+        }
 
     return {
         "status": "accepted",
-        "message": message,
-        "transport": transport,
+        "message": "Processing queued",
+        "transport": "sqs",
         "device_id": request.device_id,
         "recorded_at": request.recorded_at
     }

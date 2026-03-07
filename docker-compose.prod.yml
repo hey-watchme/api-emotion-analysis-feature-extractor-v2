@@ -8,6 +8,13 @@ services:
       - "127.0.0.1:8018:8018"
     env_file:
       - .env
+    environment:
+      - FEATURE_COMPLETED_QUEUE_URL=${FEATURE_COMPLETED_QUEUE_URL:-https://sqs.ap-southeast-2.amazonaws.com/754724220380/watchme-feature-completed-queue}
+      - SER_JOB_QUEUE_ENABLED=${SER_JOB_QUEUE_ENABLED:-true}
+      - SER_JOB_QUEUE_URL=${SER_JOB_QUEUE_URL:-https://sqs.ap-southeast-2.amazonaws.com/754724220380/watchme-ser-job-queue-v1.fifo}
+      - SER_JOB_QUEUE_WAIT_SECONDS=${SER_JOB_QUEUE_WAIT_SECONDS:-20}
+      - SER_JOB_QUEUE_VISIBILITY_TIMEOUT=${SER_JOB_QUEUE_VISIBILITY_TIMEOUT:-600}
+      - SER_ALLOW_IN_PROCESS_FALLBACK=${SER_ALLOW_IN_PROCESS_FALLBACK:-false}
     networks:
       - watchme-network
     restart: always
