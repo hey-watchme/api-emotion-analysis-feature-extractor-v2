@@ -9,17 +9,19 @@ import os
 import gc
 import time
 import tempfile
+import asyncio
 import torch
 import librosa
 import numpy as np
 import warnings
+from concurrent.futures import ThreadPoolExecutor
 from transformers import HubertModel
 import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-from fastapi import FastAPI, HTTPException, status, BackgroundTasks
+from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -95,6 +97,20 @@ FEATURE_COMPLETED_QUEUE_URL = os.environ.get(
     'FEATURE_COMPLETED_QUEUE_URL',
     'https://sqs.ap-southeast-2.amazonaws.com/754724220380/watchme-feature-completed-queue'
 )
+
+
+def _read_max_workers(env_name: str, default: int = 1) -> int:
+    raw_value = os.environ.get(env_name, str(default))
+    try:
+        return max(1, int(raw_value))
+    except ValueError:
+        print(f"⚠️ Invalid {env_name}={raw_value}, fallback to {default}")
+        return default
+
+
+SER_ASYNC_JOB_WORKERS = _read_max_workers("SER_ASYNC_JOB_WORKERS", 1)
+ser_async_executor = ThreadPoolExecutor(max_workers=SER_ASYNC_JOB_WORKERS)
+print(f"ℹ️ SER async job workers: {SER_ASYNC_JOB_WORKERS}")
 
 # セグメント設定
 SEGMENT_DURATION = 10.0  # 10秒固定（最適バランス確認済み）
@@ -330,6 +346,12 @@ async def startup_event():
     kushinada_analyzer.load_models()
 
 
+@app.on_event("shutdown")
+async def shutdown_event():
+    """サーバー終了時に非同期ジョブ実行スレッドを停止"""
+    ser_async_executor.shutdown(wait=False, cancel_futures=False)
+
+
 @app.get("/", response_model=dict)
 async def root():
     """ルートエンドポイント"""
@@ -369,15 +391,14 @@ class AsyncProcessRequest(BaseModel):
 
 @app.post("/async-process", status_code=202)
 async def async_process(
-    request: AsyncProcessRequest,
-    background_tasks: BackgroundTasks
+    request: AsyncProcessRequest
 ):
     """Asynchronous processing endpoint - returns 202 Accepted immediately"""
     print(f"Starting async processing for {request.device_id} at {request.recorded_at}")
 
-    # Add to background tasks (including status update)
-    background_tasks.add_task(
-        process_in_background,
+    # Offload heavy processing to a dedicated thread so the API can acknowledge immediately.
+    ser_async_executor.submit(
+        _run_process_in_background,
         request.file_path,
         request.device_id,
         request.recorded_at
@@ -389,6 +410,13 @@ async def async_process(
         "device_id": request.device_id,
         "recorded_at": request.recorded_at
     }
+
+
+def _run_process_in_background(file_path: str, device_id: str, recorded_at: str):
+    try:
+        asyncio.run(process_in_background(file_path, device_id, recorded_at))
+    except Exception as e:
+        print(f"Background runner crashed for {device_id}/{recorded_at}: {str(e)}")
 
 
 async def process_in_background(file_path: str, device_id: str, recorded_at: str):
